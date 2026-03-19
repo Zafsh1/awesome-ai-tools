@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Bookmarks</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <img src="../icons/icon-32.png" alt="AI Bookmarks" class="logo" width="20" height="20">
+      <span class="app-name">AI Bookmarks</span>
+    </div>
+    <div class="header-right">
+      <input type="search" id="search-input" class="search-input" placeholder="Search bookmarks..." aria-label="Search bookmarks">
+      <button id="btn-settings" class="icon-btn" title="Settings" aria-label="Open settings">⚙</button>
+    </div>
+  </header>
+
+  <!-- Main Layout -->
+  <div class="main-layout">
+    <!-- Sidebar: Categories -->
+    <aside class="sidebar" id="sidebar">
+      <div id="category-tree"></div>
+      <button id="btn-share" class="share-btn" title="Share a collection">
+        ↗ Share Collection
+      </button>
+    </aside>
+
+    <!-- Content: Bookmark List -->
+    <main class="content">
+      <div id="bookmark-list" class="bookmark-list" role="list"></div>
+      <div id="empty-state" class="empty-state hidden">
+        <div class="empty-icon">🔖</div>
+        <p class="empty-title">No bookmarks yet</p>
+        <p class="empty-sub">Save a page with <kbd>Ctrl+D</kbd> or right-click → "Save with AI Bookmarks"</p>
+      </div>
+      <div id="loading-state" class="loading-state hidden">
+        <div class="spinner"></div>
+        <p>Loading…</p>
+      </div>
+    </main>
+  </div>
+
+  <!-- Share Modal -->
+  <div id="share-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="share-modal-title">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="share-modal-title">Share Collection</h2>
+        <button id="btn-close-modal" class="icon-btn" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <label for="share-name">Collection name</label>
+        <input type="text" id="share-name" placeholder="My Bookmarks" class="text-input">
+
+        <label for="share-desc">Description (optional)</label>
+        <textarea id="share-desc" placeholder="A curated collection of…" class="text-input textarea" rows="2"></textarea>
+
+        <label>Visibility</label>
+        <div class="radio-group">
+          <label class="radio-label">
+            <input type="radio" name="visibility" value="link" checked> Anyone with link
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="visibility" value="public"> Public
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-cancel-share" class="btn btn-secondary">Cancel</button>
+        <button id="btn-confirm-share" class="btn btn-primary">Share</button>
+      </div>
+      <div id="share-result" class="share-result hidden">
+        <p>Shareable link:</p>
+        <div class="share-link-row">
+          <input type="text" id="share-link-input" class="text-input share-link-input" readonly>
+          <button id="btn-copy-link" class="btn btn-primary">Copy</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- No API key warning -->
+  <div id="no-api-key-banner" class="banner banner-warning hidden">
+    ⚠ No API key set — <button id="btn-open-options" class="link-btn">configure in Settings</button>
+  </div>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

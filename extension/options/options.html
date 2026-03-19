@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Bookmarks — Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="page">
+    <header class="page-header">
+      <img src="../icons/icon-48.png" alt="" width="32" height="32">
+      <div>
+        <h1>AI Bookmarks Settings</h1>
+        <p class="subtitle">Configure your AI-powered bookmark manager</p>
+      </div>
+    </header>
+
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-tab="ai" role="tab">AI Configuration</button>
+      <button class="tab" data-tab="categories" role="tab">Categories</button>
+      <button class="tab" data-tab="ranking" role="tab">Ranking</button>
+      <button class="tab" data-tab="sync" role="tab">Sync</button>
+      <button class="tab" data-tab="data" role="tab">Data</button>
+    </nav>
+
+    <div class="tab-content">
+
+      <!-- AI Configuration -->
+      <section id="tab-ai" class="section active">
+        <h2>AI Configuration</h2>
+
+        <div class="field-group">
+          <label for="api-key" class="field-label">Claude API Key <span class="required">*</span></label>
+          <p class="field-desc">Get your key from <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a></p>
+          <div class="input-row">
+            <input type="password" id="api-key" class="text-input" placeholder="sk-ant-..." autocomplete="off">
+            <button id="btn-toggle-key" class="btn btn-secondary">Show</button>
+            <button id="btn-test-key" class="btn btn-primary">Test</button>
+          </div>
+          <p id="api-key-status" class="status-msg"></p>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">AI Features</label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="enable-categories">
+            Auto-categorize bookmarks into folders
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="enable-summaries">
+            Generate AI summaries for bookmarks
+          </label>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">AI Model</label>
+          <select id="model-select" class="select-input">
+            <option value="claude-sonnet-4-6">Claude Sonnet 4.6 (Recommended)</option>
+            <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (Faster, cheaper)</option>
+            <option value="claude-opus-4-6">Claude Opus 4.6 (Most capable)</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- Categories -->
+      <section id="tab-categories" class="section">
+        <h2>Categories</h2>
+        <p class="section-desc">AI will assign bookmarks to these categories. Drag to reorder.</p>
+        <div id="categories-list" class="categories-list"></div>
+        <button id="btn-add-category" class="btn btn-secondary" style="margin-top:12px">+ Add Category</button>
+      </section>
+
+      <!-- Ranking -->
+      <section id="tab-ranking" class="section">
+        <h2>Smart Ranking</h2>
+        <p class="section-desc">Adjust how bookmarks are ranked in the popup. Weights must sum to 1.0.</p>
+
+        <div class="field-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="enable-ranking">
+            Enable smart ranking
+          </label>
+        </div>
+
+        <div id="ranking-weights">
+          <div class="slider-row">
+            <label>Visit frequency</label>
+            <input type="range" id="weight-visits" min="0" max="100" step="5" class="slider">
+            <span id="weight-visits-val" class="slider-val">40%</span>
+          </div>
+          <div class="slider-row">
+            <label>Recency</label>
+            <input type="range" id="weight-recency" min="0" max="100" step="5" class="slider">
+            <span id="weight-recency-val" class="slider-val">30%</span>
+          </div>
+          <div class="slider-row">
+            <label>AI relevance</label>
+            <input type="range" id="weight-relevance" min="0" max="100" step="5" class="slider">
+            <span id="weight-relevance-val" class="slider-val">20%</span>
+          </div>
+          <div class="slider-row">
+            <label>Share popularity</label>
+            <input type="range" id="weight-shares" min="0" max="100" step="5" class="slider">
+            <span id="weight-shares-val" class="slider-val">10%</span>
+          </div>
+          <p id="weight-total-warning" class="status-msg status-warning" style="display:none">Weights must sum to 100%</p>
+        </div>
+      </section>
+
+      <!-- Sync -->
+      <section id="tab-sync" class="section">
+        <h2>Cross-Browser Sync</h2>
+        <p class="section-desc">
+          <strong>Chrome ↔ Chrome/Edge</strong> sync is automatic via your Google account.<br>
+          <strong>Chrome ↔ Firefox</strong> sync requires Firebase (sign in below).
+        </p>
+
+        <div class="field-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="enable-sync">
+            Enable Firebase sync (Chrome ↔ Firefox)
+          </label>
+        </div>
+
+        <div id="sync-auth-section" class="field-group">
+          <div id="sync-status" class="sync-status">
+            <span id="sync-status-icon">○</span>
+            <span id="sync-status-text">Not signed in</span>
+          </div>
+          <button id="btn-google-signin" class="btn btn-primary">Sign in with Google</button>
+          <button id="btn-sign-out" class="btn btn-secondary hidden">Sign out</button>
+          <button id="btn-sync-now" class="btn btn-secondary hidden">Sync Now</button>
+        </div>
+      </section>
+
+      <!-- Data -->
+      <section id="tab-data" class="section">
+        <h2>Data Management</h2>
+
+        <div class="field-group">
+          <h3>Export</h3>
+          <p class="field-desc">Download all your bookmarks with AI metadata.</p>
+          <div class="btn-row">
+            <button id="btn-export-json" class="btn btn-secondary">Export as JSON</button>
+            <button id="btn-export-html" class="btn btn-secondary">Export as HTML (Netscape)</button>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <h3>Import</h3>
+          <p class="field-desc">Import bookmarks from a JSON file (previously exported from AI Bookmarks).</p>
+          <input type="file" id="import-file" accept=".json" class="file-input">
+          <button id="btn-import" class="btn btn-secondary">Import JSON</button>
+        </div>
+
+        <div class="field-group danger-zone">
+          <h3>Danger Zone</h3>
+          <p class="field-desc">These actions cannot be undone.</p>
+          <div class="btn-row">
+            <button id="btn-clear-ai-data" class="btn btn-danger">Clear AI Data</button>
+            <button id="btn-reset-all" class="btn btn-danger">Reset Everything</button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Save bar -->
+    <footer class="save-bar">
+      <span id="save-status" class="save-status"></span>
+      <button id="btn-save" class="btn btn-primary">Save Settings</button>
+    </footer>
+  </div>
+
+  <script type="module" src="options.js"></script>
+</body>
+</html>

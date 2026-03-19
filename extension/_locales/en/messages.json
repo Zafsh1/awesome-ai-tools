@@ -1,0 +1,54 @@
+{
+  "extensionName": {
+    "message": "AI Bookmarks",
+    "description": "Name of the extension"
+  },
+  "extensionDescription": {
+    "message": "AI-powered bookmark manager with auto-categorization, smart summaries, and cross-browser sync",
+    "description": "Description of the extension"
+  },
+  "popupTitle": {
+    "message": "AI Bookmarks",
+    "description": "Title shown in the popup"
+  },
+  "searchPlaceholder": {
+    "message": "Search bookmarks...",
+    "description": "Placeholder for the search input"
+  },
+  "settingsButton": {
+    "message": "Settings",
+    "description": "Tooltip for the settings button"
+  },
+  "shareButton": {
+    "message": "Share Collection",
+    "description": "Button to share a bookmark collection"
+  },
+  "allCategory": {
+    "message": "All",
+    "description": "Label for the 'All' category in the sidebar"
+  },
+  "uncategorized": {
+    "message": "Uncategorized",
+    "description": "Label for bookmarks without a category"
+  },
+  "aiPending": {
+    "message": "AI pending…",
+    "description": "Status badge for bookmarks awaiting AI processing"
+  },
+  "retryAi": {
+    "message": "Retry AI",
+    "description": "Button to retry AI processing for a failed bookmark"
+  },
+  "noApiKeyBanner": {
+    "message": "No API key set — configure in Settings",
+    "description": "Warning banner when no Claude API key is configured"
+  },
+  "contextMenuBookmark": {
+    "message": "Save with AI Bookmarks",
+    "description": "Context menu item for bookmarking a page"
+  },
+  "optionsTitle": {
+    "message": "AI Bookmarks Settings",
+    "description": "Title of the options page"
+  }
+}
