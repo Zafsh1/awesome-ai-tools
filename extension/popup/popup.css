@@ -349,3 +349,12 @@ html, body {
 
 /* ─── Highlight ──────────────────────────────────────────────────────────────── */
 mark { background: #fff3cd; color: inherit; border-radius: 2px; }
+
+/* ─── RTL Support (Hebrew, Arabic, …) ────────────────────────────────────────── */
+[dir="rtl"] .sidebar { border-right: none; border-left: 1px solid var(--color-border); }
+[dir="rtl"] .cat-item { text-align: right; }
+[dir="rtl"] .modal-footer { justify-content: flex-start; }
+[dir="rtl"] .search-input { direction: rtl; }
+/* URLs and share links always stay LTR even in RTL layout */
+[dir="rtl"] .share-link-input,
+[dir="rtl"] .bm-title a { direction: ltr; unicode-bidi: embed; }

@@ -185,3 +185,10 @@ body {
 
 .hidden { display: none !important; }
 a { color: var(--color-primary); }
+
+/* ─── RTL Support (Hebrew, Arabic, …) ────────────────────────────────────────── */
+[dir="rtl"] .slider-row label { text-align: right; }
+[dir="rtl"] .save-bar { justify-content: flex-start; }
+/* API keys and technical inputs always stay LTR */
+[dir="rtl"] #api-key,
+[dir="rtl"] .file-input { direction: ltr; unicode-bidi: embed; }

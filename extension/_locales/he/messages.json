@@ -1,0 +1,107 @@
+{
+  "extensionName": {
+    "message": "סימניות AI"
+  },
+  "extensionDescription": {
+    "message": "מנהל סימניות מבוסס AI עם סיווג אוטומטי, תקצירים חכמים וסנכרון בין דפדפנים"
+  },
+  "popupTitle": {
+    "message": "סימניות AI"
+  },
+  "searchPlaceholder": {
+    "message": "חיפוש סימניות..."
+  },
+  "settingsButton": {
+    "message": "הגדרות"
+  },
+  "shareButton": {
+    "message": "↗ שיתוף אוסף"
+  },
+  "allCategory": {
+    "message": "הכול"
+  },
+  "uncategorized": {
+    "message": "ללא קטגוריה"
+  },
+  "aiPending": {
+    "message": "‏AI בתהליך…"
+  },
+  "retryAi": {
+    "message": "נסה AI שוב"
+  },
+  "noApiKeyBanner": {
+    "message": "⚠ לא הוגדר מפתח API —"
+  },
+  "configureInSettings": {
+    "message": "הגדר בהגדרות"
+  },
+  "contextMenuBookmark": {
+    "message": "שמור עם סימניות AI"
+  },
+  "optionsTitle": {
+    "message": "הגדרות סימניות AI"
+  },
+  "optionsSubtitle": {
+    "message": "הגדר את מנהל הסימניות מבוסס ה-AI שלך"
+  },
+  "emptyTitle": {
+    "message": "אין סימניות עדיין"
+  },
+  "emptySub": {
+    "message": "שמור דף עם Ctrl+D או לחיצה ימנית ← \"שמור עם סימניות AI\""
+  },
+  "loading": {
+    "message": "טוען…"
+  },
+  "shareModalTitle": {
+    "message": "שיתוף אוסף"
+  },
+  "collectionNameLabel": {
+    "message": "שם האוסף"
+  },
+  "descriptionLabel": {
+    "message": "תיאור (אופציונלי)"
+  },
+  "visibilityLabel": {
+    "message": "נראוּת"
+  },
+  "visibilityLink": {
+    "message": "כל מי שיש לו קישור"
+  },
+  "visibilityPublic": {
+    "message": "ציבורי"
+  },
+  "cancel": {
+    "message": "ביטול"
+  },
+  "share": {
+    "message": "שתף"
+  },
+  "copy": {
+    "message": "העתק"
+  },
+  "copied": {
+    "message": "הועתק!"
+  },
+  "shareableLink": {
+    "message": "קישור לשיתוף:"
+  },
+  "tabAi": {
+    "message": "הגדרות AI"
+  },
+  "tabCategories": {
+    "message": "קטגוריות"
+  },
+  "tabRanking": {
+    "message": "דירוג"
+  },
+  "tabSync": {
+    "message": "סנכרון"
+  },
+  "tabData": {
+    "message": "נתונים"
+  },
+  "saveSettings": {
+    "message": "שמור הגדרות"
+  }
+}

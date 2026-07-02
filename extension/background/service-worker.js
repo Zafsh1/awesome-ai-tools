@@ -31,7 +31,7 @@ async function setupContextMenus() {
   chrome.contextMenus.removeAll(() => {
     chrome.contextMenus.create({
       id: CONTEXT_MENU.BOOKMARK_PAGE,
-      title: 'Save with AI Bookmarks',
+      title: chrome.i18n.getMessage('contextMenuBookmark') || 'Save with AI Bookmarks',
       contexts: ['page'],
     });
   });

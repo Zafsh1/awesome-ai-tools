@@ -8,6 +8,7 @@ import { renderBookmarkList } from './components/bookmark-list.js';
 import { initSearchBar } from './components/search-bar.js';
 import { initShareModal } from './components/share-modal.js';
 import { debounce } from '../shared/utils.js';
+import { localizeDocument } from '../shared/i18n.js';
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -21,6 +22,7 @@ let state = {
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
 async function init() {
+  localizeDocument();
   showLoading(true);
 
   try {

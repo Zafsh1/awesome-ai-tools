@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "AI Bookmarks",
+  "name": "__MSG_extensionName__",
   "version": "1.0.0",
-  "description": "AI-powered bookmark manager with auto-categorization, smart summaries, and cross-browser sync",
+  "description": "__MSG_extensionDescription__",
   "default_locale": "en",
 
   "permissions": [

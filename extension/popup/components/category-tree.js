@@ -1,6 +1,7 @@
 // Renders the category sidebar tree.
 
 import { escapeHtml } from '../../shared/utils.js';
+import { t } from '../../shared/i18n.js';
 
 /**
  * @param {{ container: HTMLElement, bookmarks: Object[], categories: Object[], selectedCategoryId: string|null, onSelect: Function }} opts
@@ -14,7 +15,7 @@ export function renderCategoryTree({ container, bookmarks, categories, selectedC
   // "All" item
   html += categoryItem({
     id: null,
-    name: 'All',
+    name: t('allCategory') || 'All',
     color: '#6a737d',
     count: totalCount,
     isActive: selectedCategoryId === null,
@@ -38,7 +39,7 @@ export function renderCategoryTree({ container, bookmarks, categories, selectedC
   if (uncategorizedCount > 0) {
     html += categoryItem({
       id: '__uncategorized__',
-      name: 'Uncategorized',
+      name: t('uncategorized') || 'Uncategorized',
       color: '#c0c8d0',
       count: uncategorizedCount,
       isActive: selectedCategoryId === '__uncategorized__',

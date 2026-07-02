@@ -20,7 +20,7 @@
     "description": "Tooltip for the settings button"
   },
   "shareButton": {
-    "message": "Share Collection",
+    "message": "↗ Share Collection",
     "description": "Button to share a bookmark collection"
   },
   "allCategory": {
@@ -40,8 +40,12 @@
     "description": "Button to retry AI processing for a failed bookmark"
   },
   "noApiKeyBanner": {
-    "message": "No API key set — configure in Settings",
+    "message": "⚠ No API key set —",
     "description": "Warning banner when no Claude API key is configured"
+  },
+  "configureInSettings": {
+    "message": "configure in Settings",
+    "description": "Link text inside the no-API-key banner"
   },
   "contextMenuBookmark": {
     "message": "Save with AI Bookmarks",
@@ -50,5 +54,89 @@
   "optionsTitle": {
     "message": "AI Bookmarks Settings",
     "description": "Title of the options page"
+  },
+  "optionsSubtitle": {
+    "message": "Configure your AI-powered bookmark manager",
+    "description": "Subtitle of the options page"
+  },
+  "emptyTitle": {
+    "message": "No bookmarks yet",
+    "description": "Empty state title in the popup"
+  },
+  "emptySub": {
+    "message": "Save a page with Ctrl+D or right-click → \"Save with AI Bookmarks\"",
+    "description": "Empty state subtitle in the popup"
+  },
+  "loading": {
+    "message": "Loading…",
+    "description": "Loading indicator text"
+  },
+  "shareModalTitle": {
+    "message": "Share Collection",
+    "description": "Title of the share modal"
+  },
+  "collectionNameLabel": {
+    "message": "Collection name",
+    "description": "Label for the collection name field"
+  },
+  "descriptionLabel": {
+    "message": "Description (optional)",
+    "description": "Label for the description field"
+  },
+  "visibilityLabel": {
+    "message": "Visibility",
+    "description": "Label for visibility options"
+  },
+  "visibilityLink": {
+    "message": "Anyone with link",
+    "description": "Link-only visibility option"
+  },
+  "visibilityPublic": {
+    "message": "Public",
+    "description": "Public visibility option"
+  },
+  "cancel": {
+    "message": "Cancel",
+    "description": "Cancel button"
+  },
+  "share": {
+    "message": "Share",
+    "description": "Share confirm button"
+  },
+  "copy": {
+    "message": "Copy",
+    "description": "Copy button"
+  },
+  "copied": {
+    "message": "Copied!",
+    "description": "Copy button after copying"
+  },
+  "shareableLink": {
+    "message": "Shareable link:",
+    "description": "Label above the generated share link"
+  },
+  "tabAi": {
+    "message": "AI Configuration",
+    "description": "Options tab: AI"
+  },
+  "tabCategories": {
+    "message": "Categories",
+    "description": "Options tab: categories"
+  },
+  "tabRanking": {
+    "message": "Ranking",
+    "description": "Options tab: ranking"
+  },
+  "tabSync": {
+    "message": "Sync",
+    "description": "Options tab: sync"
+  },
+  "tabData": {
+    "message": "Data",
+    "description": "Options tab: data"
+  },
+  "saveSettings": {
+    "message": "Save Settings",
+    "description": "Save settings button"
   }
 }

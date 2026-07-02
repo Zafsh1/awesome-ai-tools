@@ -5,12 +5,14 @@ import { encryptApiKey, decryptApiKey, isValidApiKey, generateId, escapeHtml } f
 import { testApiKey } from '../background/ai-client.js';
 import { signInWithGoogle } from '../background/firebase-client.js';
 import { ACTIONS, DEFAULT_SETTINGS, RANK_WEIGHTS } from '../shared/constants.js';
+import { localizeDocument } from '../shared/i18n.js';
 
 let settings = {};
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
 async function init() {
+  localizeDocument();
   settings = await getSettings();
   populateForm();
   setupTabs();

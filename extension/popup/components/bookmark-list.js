@@ -1,6 +1,7 @@
 // Renders the main bookmark card list.
 
 import { escapeHtml, timeAgo, highlightMatches, getFaviconUrl } from '../../shared/utils.js';
+import { t } from '../../shared/i18n.js';
 
 /**
  * @param {{ container: HTMLElement, emptyState: HTMLElement, entries: Object[], query: string, categories: Object[], onRetry: Function }} opts
@@ -55,9 +56,9 @@ function renderBookmarkCard(entry, query, categoryMap) {
   const rankPercent = Math.round(entry.rankScore || 0);
 
   const statusBadge = entry.aiStatus === 'pending'
-    ? `<span class="bm-status status-pending">AI pending…</span>`
+    ? `<span class="bm-status status-pending">${escapeHtml(t('aiPending') || 'AI pending…')}</span>`
     : entry.aiStatus === 'failed'
-    ? `<button class="bm-status status-failed" data-action="retry" data-id="${escapeHtml(entry.id)}">Retry AI</button>`
+    ? `<button class="bm-status status-failed" data-action="retry" data-id="${escapeHtml(entry.id)}">${escapeHtml(t('retryAi') || 'Retry AI')}</button>`
     : '';
 
   const timeEl = entry.lastVisited

@@ -1,7 +1,7 @@
 // Share modal: create a shareable collection link via Firebase.
 
 import { ACTIONS } from '../../shared/constants.js';
-import { escapeHtml } from '../../shared/utils.js';
+import { t } from '../../shared/i18n.js';
 
 let _currentEntries = [];
 let _initialized = false;
@@ -46,8 +46,8 @@ function setupModalListeners() {
     const input = document.getElementById('share-link-input');
     input.select();
     navigator.clipboard.writeText(input.value).catch(() => document.execCommand('copy'));
-    document.getElementById('btn-copy-link').textContent = 'Copied!';
-    setTimeout(() => { document.getElementById('btn-copy-link').textContent = 'Copy'; }, 2000);
+    document.getElementById('btn-copy-link').textContent = t('copied') || 'Copied!';
+    setTimeout(() => { document.getElementById('btn-copy-link').textContent = t('copy') || 'Copy'; }, 2000);
   });
 }
 
@@ -85,7 +85,7 @@ async function handleShare() {
     alert(`Share failed: ${err.message}`);
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Share';
+    btn.textContent = t('share') || 'Share';
   }
 }
 

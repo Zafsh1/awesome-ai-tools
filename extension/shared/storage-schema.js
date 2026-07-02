@@ -214,7 +214,7 @@ export async function isJustMoved(chromeBookmarkId, ttlMs = 500) {
   const moved = result[JUST_MOVED_KEY] || {};
   const ts = moved[chromeBookmarkId];
   if (!ts) return false;
-  if (Date.now() - ts > ttlMs) {
+  if (Date.now() - ts >= ttlMs) {
     delete moved[chromeBookmarkId];
     await chrome.storage.local.set({ [JUST_MOVED_KEY]: moved });
     return false;
