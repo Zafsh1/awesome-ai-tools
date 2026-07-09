@@ -47,14 +47,13 @@ import {
 
 /**
  * @typedef {Object} Settings
+ * @property {'openrouter'|'anthropic'} provider - Active AI provider
  * @property {string} claudeApiKey      - Encrypted
+ * @property {string|null} openrouterApiKey - Encrypted
+ * @property {string} selectedModel     - OpenRouter model id
  * @property {boolean} enableAutoCategories
  * @property {boolean} enableAiSummaries
  * @property {boolean} rankingEnabled
- * @property {boolean} syncEnabled
- * @property {string|null} firebaseUid
- * @property {string|null} firebaseToken
- * @property {number} lastSyncTimestamp
  * @property {Category[]} categories
  * @property {Object} rankWeights
  */
@@ -63,7 +62,14 @@ import {
 
 export async function getSettings() {
   const result = await chrome.storage.sync.get(STORAGE_KEYS.SETTINGS);
-  return { ...DEFAULT_SETTINGS, ...(result[STORAGE_KEYS.SETTINGS] || {}) };
+  const stored = result[STORAGE_KEYS.SETTINGS] || {};
+  const settings = { ...DEFAULT_SETTINGS, ...stored };
+  // v1 → v2 migration: users who configured a Claude key before providers
+  // existed keep using Anthropic instead of silently switching to OpenRouter.
+  if (stored.provider === undefined && stored.claudeApiKey) {
+    settings.provider = 'anthropic';
+  }
+  return settings;
 }
 
 export async function saveSettings(settings) {
@@ -75,6 +81,27 @@ export async function updateSettings(partial) {
   const updated = { ...current, ...partial };
   await saveSettings(updated);
   return updated;
+}
+
+/**
+ * Returns just the OpenRouter-related settings.
+ * @returns {Promise<{ provider: string, openrouterApiKey: string|null, selectedModel: string }>}
+ */
+export async function getOpenRouterSettings() {
+  const { provider, openrouterApiKey, selectedModel } = await getSettings();
+  return { provider, openrouterApiKey, selectedModel };
+}
+
+/**
+ * Saves OpenRouter-related settings without touching the rest.
+ * @param {{ provider?: string, openrouterApiKey?: string|null, selectedModel?: string }} partial
+ */
+export async function saveOpenRouterSettings({ provider, openrouterApiKey, selectedModel }) {
+  const partial = {};
+  if (provider !== undefined) partial.provider = provider;
+  if (openrouterApiKey !== undefined) partial.openrouterApiKey = openrouterApiKey;
+  if (selectedModel !== undefined) partial.selectedModel = selectedModel;
+  return updateSettings(partial);
 }
 
 // ─── Bookmark Index ───────────────────────────────────────────────────────────

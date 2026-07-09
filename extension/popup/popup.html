@@ -10,11 +10,12 @@
   <!-- Header -->
   <header class="header">
     <div class="header-left">
-      <img src="../icons/icon-32.png" alt="AI Bookmarks" class="logo" width="20" height="20">
+      <span class="brand-star">&#10024;</span>
       <span class="app-name" data-i18n="popupTitle">AI Bookmarks</span>
     </div>
     <div class="header-right">
       <input type="search" id="search-input" class="search-input" placeholder="Search bookmarks..." data-i18n-placeholder="searchPlaceholder" aria-label="Search bookmarks">
+      <button id="btn-theme" class="icon-btn" title="Toggle theme">&#127769;</button>
       <button id="btn-settings" class="icon-btn" title="Settings" data-i18n-title="settingsButton" aria-label="Open settings">⚙</button>
     </div>
   </header>
@@ -35,7 +36,7 @@
       <div id="empty-state" class="empty-state hidden">
         <div class="empty-icon">🔖</div>
         <p class="empty-title" data-i18n="emptyTitle">No bookmarks yet</p>
-        <p class="empty-sub" data-i18n="emptySub">Save a page with <kbd>Ctrl+D</kbd> or right-click → "Save with AI Bookmarks"</p>
+        <p class="empty-sub" data-i18n="emptySub">Save a page with <kbd>Ctrl+D</kbd> or right-click <kbd>Save with AI</kbd></p>
       </div>
       <div id="loading-state" class="loading-state hidden">
         <div class="spinner"></div>

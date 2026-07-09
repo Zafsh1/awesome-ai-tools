@@ -4,6 +4,22 @@ export const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
 export const CLAUDE_MODEL = 'claude-sonnet-4-6';
 export const CLAUDE_API_VERSION = '2023-06-01';
 
+// OpenRouter (OpenAI-compatible API, free-tier models)
+export const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+export const OPENROUTER_FREE_MODELS = [
+  { id: 'qwen/qwen-2.5-72b-instruct', name: 'Qwen 2.5 72B Instruct' },
+  { id: 'google/gemini-2.0-flash-001', name: 'Gemini 2.0 Flash' },
+  { id: 'meta-llama/llama-3.3-70b-instruct', name: 'Llama 3.3 70B Instruct' },
+  { id: 'deepseek/deepseek-chat', name: 'DeepSeek Chat' },
+];
+
+// AI providers
+export const DEFAULT_PROVIDER = 'openrouter';
+export const PROVIDER_OPTIONS = [
+  { id: 'openrouter', name: 'OpenRouter (Free)' },
+  { id: 'anthropic', name: 'Anthropic (Claude)' },
+];
+
 // Storage keys
 export const STORAGE_KEYS = {
   SETTINGS: 'settings',
@@ -38,27 +54,23 @@ export const AI_RETRY_DELAYS_MS = [1000, 2000, 4000];
 export const CONTENT_EXTRACT_TIMEOUT_MS = 2000;
 export const QUEUE_PROCESS_ALARM = 'process_queue';
 export const RANKING_RECALC_ALARM = 'ranking_recalc';
-export const SYNC_ALARM = 'firebase_sync';
+
+// Google Sheets backup
+export const BACKUP_ALARM = 'sheets_backup';
 
 // Loop prevention TTL (ms): ignore bookmark events for IDs we just moved
 export const MOVE_TTL_MS = 500;
 
-// Firebase config (safe to embed — security enforced by Firestore rules + auth)
-// Replace with your actual Firebase project config
-export const FIREBASE_CONFIG = {
-  apiKey: 'YOUR_FIREBASE_API_KEY',
-  authDomain: 'YOUR_PROJECT.firebaseapp.com',
-  projectId: 'YOUR_PROJECT_ID',
-  storageBucket: 'YOUR_PROJECT.appspot.com',
-  messagingSenderId: 'YOUR_SENDER_ID',
-  appId: 'YOUR_APP_ID',
-};
-
-export const FIRESTORE_BASE_URL = `https://firestore.googleapis.com/v1/projects/${FIREBASE_CONFIG.projectId}/databases/(default)/documents`;
-export const FIREBASE_AUTH_URL = 'https://identitytoolkit.googleapis.com/v1';
-
-// Sharing
-export const SHARE_BASE_URL = 'https://aibookmarks.app/c';
+// Firebase was removed in v2 (replaced by Google Sheets sync).
+// Historical reference config, kept commented out in case a rollback is ever needed:
+// export const FIREBASE_CONFIG = {
+//   apiKey: 'YOUR_...EY',
+//   authDomain: 'YOUR_PROJECT.firebaseapp.com',
+//   projectId: 'YOUR_PROJECT_ID',
+//   storageBucket: 'YOUR_PROJECT.appspot.com',
+//   messagingSenderId: 'YOUR_SENDER_ID',
+//   appId: 'YOUR_APP_ID',
+// };
 
 // Message actions (runtime messaging between contexts)
 export const ACTIONS = {
@@ -72,18 +84,24 @@ export const ACTIONS = {
   SHARE_COLLECTION: 'SHARE_COLLECTION',
   SYNC_NOW: 'SYNC_NOW',
   DELETE_BOOKMARK: 'DELETE_BOOKMARK',
+  IMPORT_START: 'IMPORT_START',
+  IMPORT_PROGRESS: 'IMPORT_PROGRESS',
+  IMPORT_CANCEL: 'IMPORT_CANCEL',
+  GOOGLE_SHEETS_CONNECT: 'GOOGLE_SHEETS_CONNECT',
+  GOOGLE_SHEETS_STATUS: 'GOOGLE_SHEETS_STATUS',
+  EXPORT_TO_DRIVE: 'EXPORT_TO_DRIVE',
+  GET_IMPORT_STATE: 'GET_IMPORT_STATE',
 };
 
 // Default settings
 export const DEFAULT_SETTINGS = {
-  claudeApiKey: '',
+  provider: DEFAULT_PROVIDER,
+  claudeApiKey: null,
+  openrouterApiKey: null,
+  selectedModel: 'qwen/qwen-2.5-72b-instruct',
   enableAutoCategories: true,
   enableAiSummaries: true,
   rankingEnabled: true,
-  syncEnabled: false,
-  firebaseUid: null,
-  firebaseToken: null,
-  lastSyncTimestamp: 0,
   categories: [
     { id: 'cat_tech', name: 'Technology', color: '#4A90E2', icon: 'code' },
     { id: 'cat_research', name: 'Research', color: '#7ED321', icon: 'book' },
@@ -99,3 +117,6 @@ export const CONTEXT_MENU = {
   BOOKMARK_PAGE: 'ai_bookmark_page',
   SHARE_PAGE: 'ai_share_page',
 };
+
+// Batch size for AI processing during import
+export const AI_BATCH_SIZE = 5;

@@ -15,7 +15,7 @@ import {
   isJustMoved,
 } from '../shared/storage-schema.js';
 import { generateId, normalizeUrl } from '../shared/utils.js';
-import { enrichBookmark } from './ai-client.js';
+import { enrichWithAI, hasApiKey } from './provider-manager.js';
 import { applyCategorizationResult } from './categorizer.js';
 import { computeRankScore } from './ranker.js';
 import { logError } from '../shared/error-handler.js';
@@ -127,13 +127,13 @@ async function processSingleBookmark(queueItem) {
       return;
     }
 
-    if (!settings.claudeApiKey) {
-      // No API key: mark as pending (user can add key later)
+    if (!(await hasApiKey(settings))) {
+      // No API key for the active provider: mark as pending (user can add key later)
       return;
     }
 
-    // Step 2: Call Claude API for categorization + summary
-    const result = await enrichBookmark({
+    // Step 2: Call the active AI provider for categorization + summary
+    const result = await enrichWithAI({
       url,
       title,
       extractedText,

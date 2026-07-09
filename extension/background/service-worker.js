@@ -1,13 +1,12 @@
 // Main service worker — event hub for the AI Bookmarks extension.
 // MV3 service workers are ephemeral; ALL state is persisted to storage immediately.
 
-import { ACTIONS, CONTEXT_MENU, QUEUE_PROCESS_ALARM, RANKING_RECALC_ALARM, SYNC_ALARM } from '../shared/constants.js';
+import { ACTIONS, CONTEXT_MENU, QUEUE_PROCESS_ALARM, RANKING_RECALC_ALARM, BACKUP_ALARM } from '../shared/constants.js';
 import { handleBookmarkCreated, handleBookmarkRemoved, handleBookmarkChanged } from './bookmark-handler.js';
 import { processQueue } from './bookmark-handler.js';
 import { recalculateAllRanks } from './ranker.js';
-import { syncWithFirebase } from './sync-manager.js';
+import { backupAllBookmarks } from './sheets-backup.js';
 import { recordVisit } from '../shared/storage-schema.js';
-import { getSettings } from '../shared/storage-schema.js';
 import { logError } from '../shared/error-handler.js';
 
 // ─── Installation ─────────────────────────────────────────────────────────────
@@ -44,8 +43,8 @@ async function setupAlarms() {
   chrome.alarms.create(QUEUE_PROCESS_ALARM, { periodInMinutes: 2 });
   // Recalculate ranking scores daily
   chrome.alarms.create(RANKING_RECALC_ALARM, { periodInMinutes: 60 * 24 });
-  // Firebase sync every 5 minutes
-  chrome.alarms.create(SYNC_ALARM, { periodInMinutes: 5 });
+  // Google Sheets backup daily
+  chrome.alarms.create(BACKUP_ALARM, { periodInMinutes: 60 * 24 });
 }
 
 chrome.alarms.onAlarm.addListener(async ({ name }) => {
@@ -54,10 +53,11 @@ chrome.alarms.onAlarm.addListener(async ({ name }) => {
       await processQueue();
     } else if (name === RANKING_RECALC_ALARM) {
       await recalculateAllRanks();
-    } else if (name === SYNC_ALARM) {
-      const settings = await getSettings();
-      if (settings.syncEnabled && settings.firebaseToken) {
-        await syncWithFirebase();
+    } else if (name === BACKUP_ALARM) {
+      try {
+        await backupAllBookmarks(false);
+      } catch (err) {
+        logError('backup alarm', err);
       }
     }
   } catch (err) {
@@ -184,14 +184,47 @@ async function handleMessage(message, sender) {
       return { ok: true };
     }
 
-    case ACTIONS.SHARE_COLLECTION: {
-      const { shareCollection } = await import('./firebase-client.js');
-      return shareCollection(payload);
+    case ACTIONS.SHARE_COLLECTION:
+    case ACTIONS.SYNC_NOW: {
+      // Firebase sync/sharing was removed in v2 (Google Sheets sync coming later)
+      return { error: 'Sync and sharing are not available in this version.' };
     }
 
-    case ACTIONS.SYNC_NOW: {
-      await syncWithFirebase();
+        case ACTIONS.IMPORT_START: {
+      const { startImport, getImportState } = await import('./importer.js');
+      startImport(payload).catch(err => logError('import', err));
       return { ok: true };
+    }
+
+    case ACTIONS.IMPORT_CANCEL: {
+      const { cancelImport } = await import('./importer.js');
+      cancelImport();
+      return { ok: true };
+    }
+
+    case ACTIONS.GOOGLE_SHEETS_CONNECT: {
+      const { connect } = await import('./sheets-backup.js');
+      return connect();
+    }
+
+    case ACTIONS.GOOGLE_SHEETS_STATUS: {
+      const { checkConnection } = await import('./sheets-backup.js');
+      return checkConnection();
+    }
+
+    case ACTIONS.EXPORT_TO_DRIVE: {
+      const { exportToDrive } = await import('./sheets-backup.js');
+      return exportToDrive(true);
+    }
+
+    case ACTIONS.GET_IMPORT_STATE: {
+      const { getImportState } = await import('./importer.js');
+      return getImportState();
+    }
+
+
+      const { getImportState } = await import('./importer.js');
+      return getImportState();
     }
 
     case ACTIONS.DELETE_BOOKMARK: {

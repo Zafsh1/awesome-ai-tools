@@ -103,5 +103,89 @@
   },
   "saveSettings": {
     "message": "保存设置"
+  },
+  "tabApi": {
+    "message": "API",
+    "description": "UI: tabApi"
+  },
+  "tabImport": {
+    "message": "导入",
+    "description": "UI: tabImport"
+  },
+  "tabBackup": {
+    "message": "备份",
+    "description": "UI: tabBackup"
+  },
+  "tabAbout": {
+    "message": "关于",
+    "description": "UI: tabAbout"
+  },
+  "themeToggle": {
+    "message": "主题",
+    "description": "UI: themeToggle"
+  },
+  "scanExisting": {
+    "message": "扫描现有书签",
+    "description": "UI: scanExisting"
+  },
+  "scanDesc": {
+    "message": "从Chrome导入所有书签并用AI处理",
+    "description": "UI: scanDesc"
+  },
+  "scanBtn": {
+    "message": "扫描并导入",
+    "description": "UI: scanBtn"
+  },
+  "uploadHtml": {
+    "message": "上传书签文件",
+    "description": "UI: uploadHtml"
+  },
+  "uploadDesc": {
+    "message": "上传从Chrome导出的HTML文件",
+    "description": "UI: uploadDesc"
+  },
+  "uploadBtn": {
+    "message": "上传并导入",
+    "description": "UI: uploadBtn"
+  },
+  "sheetsBackup": {
+    "message": "备份到Google表格",
+    "description": "UI: sheetsBackup"
+  },
+  "sheetsDesc": {
+    "message": "将所有书签及AI数据保存到Google表格",
+    "description": "UI: sheetsDesc"
+  },
+  "sheetsNotConnected": {
+    "message": "未连接",
+    "description": "UI: sheetsNotConnected"
+  },
+  "connectBtn": {
+    "message": "连接Google表格",
+    "description": "UI: connectBtn"
+  },
+  "backupNowBtn": {
+    "message": "立即备份",
+    "description": "UI: backupNowBtn"
+  },
+  "driveExport": {
+    "message": "导出到Google云端硬盘",
+    "description": "UI: driveExport"
+  },
+  "driveDesc": {
+    "message": "将CSV文件导出到Google云端硬盘",
+    "description": "UI: driveDesc"
+  },
+  "exportDriveBtn": {
+    "message": "导出到云端硬盘",
+    "description": "UI: exportDriveBtn"
+  },
+  "exportCsvBtn": {
+    "message": "导出为CSV",
+    "description": "UI: exportCsvBtn"
+  },
+  "cancelBtn": {
+    "message": "取消",
+    "description": "UI: cancelBtn"
   }
 }

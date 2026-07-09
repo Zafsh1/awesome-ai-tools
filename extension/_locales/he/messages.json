@@ -103,5 +103,89 @@
   },
   "saveSettings": {
     "message": "שמור הגדרות"
+  },
+  "tabApi": {
+    "message": "API",
+    "description": "UI: tabApi"
+  },
+  "tabImport": {
+    "message": "יבוא",
+    "description": "UI: tabImport"
+  },
+  "tabBackup": {
+    "message": "גיבוי",
+    "description": "UI: tabBackup"
+  },
+  "tabAbout": {
+    "message": "אודות",
+    "description": "UI: tabAbout"
+  },
+  "themeToggle": {
+    "message": "ערכת נושא",
+    "description": "UI: themeToggle"
+  },
+  "scanExisting": {
+    "message": "סריקת סימניות קיימות",
+    "description": "UI: scanExisting"
+  },
+  "scanDesc": {
+    "message": "ייבא את כל הסימניות מ-Chrome ועבד אותן עם AI",
+    "description": "UI: scanDesc"
+  },
+  "scanBtn": {
+    "message": "סרוק וייבא",
+    "description": "UI: scanBtn"
+  },
+  "uploadHtml": {
+    "message": "העלאת קובץ סימניות",
+    "description": "UI: uploadHtml"
+  },
+  "uploadDesc": {
+    "message": "העלה קובץ HTML שיוצא מ-Chrome",
+    "description": "UI: uploadDesc"
+  },
+  "uploadBtn": {
+    "message": "העלה וייבא",
+    "description": "UI: uploadBtn"
+  },
+  "sheetsBackup": {
+    "message": "גיבוי ל-Google Sheets",
+    "description": "UI: sheetsBackup"
+  },
+  "sheetsDesc": {
+    "message": "שמור את כל הסימניות עם נתוני AI ל-Google Sheet",
+    "description": "UI: sheetsDesc"
+  },
+  "sheetsNotConnected": {
+    "message": "לא מחובר",
+    "description": "UI: sheetsNotConnected"
+  },
+  "connectBtn": {
+    "message": "התחבר ל-Google Sheets",
+    "description": "UI: connectBtn"
+  },
+  "backupNowBtn": {
+    "message": "גבה עכשיו",
+    "description": "UI: backupNowBtn"
+  },
+  "driveExport": {
+    "message": "ייצא ל-Google Drive",
+    "description": "UI: driveExport"
+  },
+  "driveDesc": {
+    "message": "ייצא קובץ CSV ל-Google Drive שלך",
+    "description": "UI: driveDesc"
+  },
+  "exportDriveBtn": {
+    "message": "ייצא ל-Drive",
+    "description": "UI: exportDriveBtn"
+  },
+  "exportCsvBtn": {
+    "message": "ייצא כ-CSV",
+    "description": "UI: exportCsvBtn"
+  },
+  "cancelBtn": {
+    "message": "בטל",
+    "description": "UI: cancelBtn"
   }
 }

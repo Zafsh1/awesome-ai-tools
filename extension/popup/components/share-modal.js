@@ -1,4 +1,4 @@
-// Share modal: create a shareable collection link via Firebase.
+// Share modal: create a shareable collection link (backend removed in v2; shows a notice).
 
 import { ACTIONS } from '../../shared/constants.js';
 import { t } from '../../shared/i18n.js';
@@ -78,7 +78,7 @@ async function handleShare() {
       document.getElementById('share-link-input').value = result.shareUrl;
       document.getElementById('share-result').classList.remove('hidden');
     } else {
-      alert('Sharing requires Firebase sync to be configured. Enable it in Settings first.');
+      alert(result?.error || 'Sharing is not available in this version.');
       closeModal();
     }
   } catch (err) {

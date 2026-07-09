@@ -103,5 +103,89 @@
   },
   "saveSettings": {
     "message": "儲存設定"
+  },
+  "tabApi": {
+    "message": "API",
+    "description": "UI: tabApi"
+  },
+  "tabImport": {
+    "message": "匯入",
+    "description": "UI: tabImport"
+  },
+  "tabBackup": {
+    "message": "備份",
+    "description": "UI: tabBackup"
+  },
+  "tabAbout": {
+    "message": "關於",
+    "description": "UI: tabAbout"
+  },
+  "themeToggle": {
+    "message": "主題",
+    "description": "UI: themeToggle"
+  },
+  "scanExisting": {
+    "message": "掃描現有書籤",
+    "description": "UI: scanExisting"
+  },
+  "scanDesc": {
+    "message": "從Chrome導入所有書籤並用AI處理",
+    "description": "UI: scanDesc"
+  },
+  "scanBtn": {
+    "message": "掃描並匯入",
+    "description": "UI: scanBtn"
+  },
+  "uploadHtml": {
+    "message": "上傳書籤檔案",
+    "description": "UI: uploadHtml"
+  },
+  "uploadDesc": {
+    "message": "上傳從Chrome匯出的HTML檔案",
+    "description": "UI: uploadDesc"
+  },
+  "uploadBtn": {
+    "message": "上傳並匯入",
+    "description": "UI: uploadBtn"
+  },
+  "sheetsBackup": {
+    "message": "備份到Google試算表",
+    "description": "UI: sheetsBackup"
+  },
+  "sheetsDesc": {
+    "message": "將所有書籤及AI資料保存到Google試算表",
+    "description": "UI: sheetsDesc"
+  },
+  "sheetsNotConnected": {
+    "message": "未連線",
+    "description": "UI: sheetsNotConnected"
+  },
+  "connectBtn": {
+    "message": "連接Google試算表",
+    "description": "UI: connectBtn"
+  },
+  "backupNowBtn": {
+    "message": "立即備份",
+    "description": "UI: backupNowBtn"
+  },
+  "driveExport": {
+    "message": "匯出到Google雲端硬碟",
+    "description": "UI: driveExport"
+  },
+  "driveDesc": {
+    "message": "將CSV檔案匯出到Google雲端硬碟",
+    "description": "UI: driveDesc"
+  },
+  "exportDriveBtn": {
+    "message": "匯出到雲端硬碟",
+    "description": "UI: exportDriveBtn"
+  },
+  "exportCsvBtn": {
+    "message": "匯出為CSV",
+    "description": "UI: exportCsvBtn"
+  },
+  "cancelBtn": {
+    "message": "取消",
+    "description": "UI: cancelBtn"
   }
 }

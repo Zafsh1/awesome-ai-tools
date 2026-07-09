@@ -2,9 +2,8 @@
 
 import { getSettings, saveSettings } from '../shared/storage-schema.js';
 import { encryptApiKey, decryptApiKey, isValidApiKey, generateId, escapeHtml } from '../shared/utils.js';
-import { testApiKey } from '../background/ai-client.js';
-import { signInWithGoogle } from '../background/firebase-client.js';
-import { ACTIONS, DEFAULT_SETTINGS, RANK_WEIGHTS } from '../shared/constants.js';
+import { testApiKey } from '../background/provider-manager.js';
+import { RANK_WEIGHTS, PROVIDER_OPTIONS, OPENROUTER_FREE_MODELS, DEFAULT_PROVIDER } from '../shared/constants.js';
 import { localizeDocument } from '../shared/i18n.js';
 
 let settings = {};
@@ -23,15 +22,34 @@ async function init() {
 // ─── Form Population ──────────────────────────────────────────────────────────
 
 async function populateForm() {
-  // API key (decrypt for display)
+  // Provider selector
+  const providerSelect = document.getElementById('provider-select');
+  providerSelect.innerHTML = PROVIDER_OPTIONS.map(
+    (p) => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</option>`
+  ).join('');
+  providerSelect.value = settings.provider || DEFAULT_PROVIDER;
+
+  // OpenRouter model selector
+  const modelSelect = document.getElementById('model-select');
+  modelSelect.innerHTML = OPENROUTER_FREE_MODELS.map(
+    (m) => `<option value="${escapeHtml(m.id)}">${escapeHtml(m.name)}</option>`
+  ).join('');
+  if (OPENROUTER_FREE_MODELS.some((m) => m.id === settings.selectedModel)) {
+    modelSelect.value = settings.selectedModel;
+  }
+
+  updateProviderVisibility();
+
+  // API keys (decrypt for display)
   const apiKey = settings.claudeApiKey ? await decryptApiKey(settings.claudeApiKey) : '';
   document.getElementById('api-key').value = apiKey || '';
+  const orKey = settings.openrouterApiKey ? await decryptApiKey(settings.openrouterApiKey) : '';
+  document.getElementById('openrouter-api-key').value = orKey || '';
 
   // Checkboxes
   document.getElementById('enable-categories').checked = settings.enableAutoCategories !== false;
   document.getElementById('enable-summaries').checked = settings.enableAiSummaries !== false;
   document.getElementById('enable-ranking').checked = settings.rankingEnabled !== false;
-  document.getElementById('enable-sync').checked = settings.syncEnabled === true;
 
   // Ranking weights
   const w = settings.rankWeights || RANK_WEIGHTS;
@@ -39,9 +57,6 @@ async function populateForm() {
   setSlider('weight-recency', Math.round((w.RECENCY || 0.3) * 100));
   setSlider('weight-relevance', Math.round((w.AI_RELEVANCE || 0.2) * 100));
   setSlider('weight-shares', Math.round((w.SHARE_COUNT || 0.1) * 100));
-
-  // Sync status
-  updateSyncStatus();
 }
 
 function setSlider(id, value) {
@@ -65,16 +80,20 @@ function setupTabs() {
 // ─── Event Listeners ──────────────────────────────────────────────────────────
 
 function setupListeners() {
-  // API key: show/hide
-  document.getElementById('btn-toggle-key').addEventListener('click', () => {
-    const input = document.getElementById('api-key');
-    const btn = document.getElementById('btn-toggle-key');
-    input.type = input.type === 'password' ? 'text' : 'password';
-    btn.textContent = input.type === 'password' ? 'Show' : 'Hide';
-  });
+  // Provider switch: show only the active provider's fields
+  document.getElementById('provider-select').addEventListener('change', updateProviderVisibility);
 
-  // Test API key
-  document.getElementById('btn-test-key').addEventListener('click', handleTestKey);
+  // API keys: show/hide
+  setupKeyToggle('btn-toggle-key', 'api-key');
+  setupKeyToggle('btn-toggle-or-key', 'openrouter-api-key');
+
+  // Test API keys
+  document.getElementById('btn-test-key').addEventListener('click', () =>
+    handleTestKey({ provider: 'anthropic', inputId: 'api-key', statusId: 'api-key-status', btnId: 'btn-test-key' })
+  );
+  document.getElementById('btn-test-or-key').addEventListener('click', () =>
+    handleTestKey({ provider: 'openrouter', inputId: 'openrouter-api-key', statusId: 'openrouter-key-status', btnId: 'btn-test-or-key' })
+  );
 
   // Ranking sliders
   ['weight-visits', 'weight-recency', 'weight-relevance', 'weight-shares'].forEach((id) => {
@@ -86,11 +105,6 @@ function setupListeners() {
 
   // Add category
   document.getElementById('btn-add-category').addEventListener('click', addCategory);
-
-  // Sync sign in/out
-  document.getElementById('btn-google-signin').addEventListener('click', handleGoogleSignIn);
-  document.getElementById('btn-sign-out').addEventListener('click', handleSignOut);
-  document.getElementById('btn-sync-now').addEventListener('click', handleSyncNow);
 
   // Export
   document.getElementById('btn-export-json').addEventListener('click', exportJson);
@@ -110,19 +124,37 @@ function setupListeners() {
   document.getElementById('btn-save').addEventListener('click', handleSave);
 }
 
+// ─── Provider UI ──────────────────────────────────────────────────────────────
+
+function updateProviderVisibility() {
+  const provider = document.getElementById('provider-select').value;
+  document.getElementById('provider-openrouter').classList.toggle('hidden', provider !== 'openrouter');
+  document.getElementById('provider-anthropic').classList.toggle('hidden', provider !== 'anthropic');
+}
+
+function setupKeyToggle(btnId, inputId) {
+  document.getElementById(btnId).addEventListener('click', () => {
+    const input = document.getElementById(inputId);
+    const btn = document.getElementById(btnId);
+    input.type = input.type === 'password' ? 'text' : 'password';
+    btn.textContent = input.type === 'password' ? 'Show' : 'Hide';
+  });
+}
+
 // ─── API Key Testing ──────────────────────────────────────────────────────────
 
-async function handleTestKey() {
-  const keyInput = document.getElementById('api-key').value.trim();
-  const statusEl = document.getElementById('api-key-status');
-  const btn = document.getElementById('btn-test-key');
+async function handleTestKey({ provider, inputId, statusId, btnId }) {
+  const keyInput = document.getElementById(inputId).value.trim();
+  const statusEl = document.getElementById(statusId);
+  const btn = document.getElementById(btnId);
 
   if (!keyInput) {
     showStatus(statusEl, 'Enter an API key first.', 'error');
     return;
   }
-  if (!isValidApiKey(keyInput)) {
-    showStatus(statusEl, 'Key should start with "sk-ant-"', 'error');
+  if (!isValidApiKey(keyInput, provider)) {
+    const prefix = provider === 'openrouter' ? 'sk-or-' : 'sk-ant-';
+    showStatus(statusEl, `Key should start with "${prefix}"`, 'error');
     return;
   }
 
@@ -131,7 +163,7 @@ async function handleTestKey() {
   showStatus(statusEl, '', '');
 
   try {
-    await testApiKey(keyInput);
+    await testApiKey(keyInput, provider);
     showStatus(statusEl, '✓ API key is valid', 'ok');
   } catch (err) {
     showStatus(statusEl, `✗ ${err.message}`, 'error');
@@ -191,86 +223,6 @@ function checkWeightTotal() {
 
   const warning = document.getElementById('weight-total-warning');
   warning.style.display = total !== 100 ? 'block' : 'none';
-}
-
-// ─── Sync ─────────────────────────────────────────────────────────────────────
-
-async function handleGoogleSignIn() {
-  const btn = document.getElementById('btn-google-signin');
-  btn.disabled = true;
-  btn.textContent = 'Signing in…';
-
-  try {
-    const authResult = await chrome.identity.getAuthToken({ interactive: true });
-    const googleToken = authResult.token || authResult;
-
-    const { uid, idToken, refreshToken, expiresAt } = await signInWithGoogle(googleToken);
-
-    settings.firebaseUid = uid;
-    settings.firebaseToken = idToken;
-    settings.firebaseRefreshToken = refreshToken;
-    settings.tokenExpiresAt = expiresAt;
-    settings.syncEnabled = true;
-
-    document.getElementById('enable-sync').checked = true;
-    await saveCurrentSettings();
-    updateSyncStatus();
-  } catch (err) {
-    alert(`Sign in failed: ${err.message}`);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Sign in with Google';
-  }
-}
-
-async function handleSignOut() {
-  if (!confirm('Sign out from sync? Your local bookmarks will be kept.')) return;
-  settings.firebaseUid = null;
-  settings.firebaseToken = null;
-  settings.firebaseRefreshToken = null;
-  settings.tokenExpiresAt = null;
-  settings.syncEnabled = false;
-  await saveCurrentSettings();
-  updateSyncStatus();
-}
-
-async function handleSyncNow() {
-  const btn = document.getElementById('btn-sync-now');
-  btn.disabled = true;
-  btn.textContent = 'Syncing…';
-  try {
-    await sendMessage({ action: ACTIONS.SYNC_NOW });
-    setSaveStatus('Sync complete');
-  } catch (err) {
-    setSaveStatus(`Sync failed: ${err.message}`);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Sync Now';
-  }
-}
-
-function updateSyncStatus() {
-  const icon = document.getElementById('sync-status-icon');
-  const text = document.getElementById('sync-status-text');
-  const signInBtn = document.getElementById('btn-google-signin');
-  const signOutBtn = document.getElementById('btn-sign-out');
-  const syncNowBtn = document.getElementById('btn-sync-now');
-
-  if (settings.firebaseUid) {
-    icon.textContent = '●';
-    icon.style.color = '#28a745';
-    text.textContent = `Connected (${settings.firebaseUid.slice(0, 8)}…)`;
-    signInBtn.classList.add('hidden');
-    signOutBtn.classList.remove('hidden');
-    syncNowBtn.classList.remove('hidden');
-  } else {
-    icon.textContent = '○';
-    icon.style.color = '';
-    text.textContent = 'Not signed in';
-    signInBtn.classList.remove('hidden');
-    signOutBtn.classList.add('hidden');
-    syncNowBtn.classList.add('hidden');
-  }
 }
 
 // ─── Export / Import ──────────────────────────────────────────────────────────
@@ -390,17 +342,9 @@ async function handleSave() {
 }
 
 async function saveCurrentSettings() {
-  // API key: encrypt before saving
-  const rawKey = document.getElementById('api-key').value.trim();
-  let encryptedKey = settings.claudeApiKey;
-  if (rawKey) {
-    const currentDecrypted = settings.claudeApiKey ? await decryptApiKey(settings.claudeApiKey) : '';
-    if (rawKey !== currentDecrypted) {
-      encryptedKey = await encryptApiKey(rawKey);
-    }
-  } else {
-    encryptedKey = '';
-  }
+  // API keys: encrypt before saving (only re-encrypt when changed)
+  const encryptedKey = await encryptIfChanged('api-key', settings.claudeApiKey, '');
+  const encryptedOrKey = await encryptIfChanged('openrouter-api-key', settings.openrouterApiKey, null);
 
   // Ranking weights
   const totalWeight =
@@ -415,11 +359,13 @@ async function saveCurrentSettings() {
 
   const updated = {
     ...settings,
+    provider: document.getElementById('provider-select').value,
     claudeApiKey: encryptedKey,
+    openrouterApiKey: encryptedOrKey,
+    selectedModel: document.getElementById('model-select').value,
     enableAutoCategories: document.getElementById('enable-categories').checked,
     enableAiSummaries: document.getElementById('enable-summaries').checked,
     rankingEnabled: document.getElementById('enable-ranking').checked,
-    syncEnabled: document.getElementById('enable-sync').checked,
     rankWeights: {
       VISIT_COUNT: parseInt(document.getElementById('weight-visits').value) / 100,
       RECENCY: parseInt(document.getElementById('weight-recency').value) / 100,
@@ -451,6 +397,151 @@ function sendMessage(message) {
     });
   });
 }
+
+
+// ─── Import (scan/upload) ─────────────────────────────────────────────────────
+
+document.getElementById('btn-scan-bookmarks')?.addEventListener('click', async () => {
+  const btn = document.getElementById('btn-scan-bookmarks');
+  const progress = document.getElementById('import-progress');
+  const fill = document.getElementById('progress-fill');
+  const stats = document.getElementById('progress-stats');
+
+  btn.disabled = true;
+  progress.classList.remove('hidden');
+  fill.style.width = '0%';
+  stats.textContent = 'Scanning...';
+
+  // Start import in service worker
+  await sendMessage({ action: 'IMPORT_START', payload: { source: 'all', processWithAI: true } });
+
+  // Poll for progress
+  const poll = setInterval(async () => {
+    try {
+      const state = await sendMessage({ action: 'GET_IMPORT_STATE' });
+      if (!state) return;
+      const pct = state.total > 0 ? Math.round((state.scanned / state.total) * 100) : 0;
+      fill.style.width = Math.min(pct, 100) + '%';
+      stats.textContent = `Scanned: ${state.scanned}/${state.total} | AI: ${state.enriched} | Failed: ${state.failed}`;
+      if (!state.running || state.cancelled) {
+        clearInterval(poll);
+        btn.disabled = false;
+        if (state.total > 0 && !state.cancelled) setSaveStatus(`Import complete: ${state.scanned} bookmarks`);
+      }
+    } catch { clearInterval(poll); btn.disabled = false; }
+  }, 500);
+});
+
+document.getElementById('btn-cancel-import')?.addEventListener('click', async () => {
+  await sendMessage({ action: 'IMPORT_CANCEL' });
+});
+
+document.getElementById('btn-upload-html')?.addEventListener('click', async () => {
+  const fileInput = document.getElementById('upload-html-file');
+  const file = fileInput.files[0];
+  if (!file) { alert('Please select a bookmarks HTML file first.'); return; }
+  const text = await file.text();
+  await sendMessage({ action: 'IMPORT_START', payload: { htmlContent: text, processWithAI: true } });
+  setSaveStatus('HTML import started. Check progress above.');
+});
+
+// ─── Google Sheets Backup ──────────────────────────────────────────────────────
+
+async function updateSheetsStatus() {
+  try {
+    const status = await sendMessage({ action: 'GOOGLE_SHEETS_STATUS' });
+    const el = document.getElementById('sheets-status');
+    const dot = el.querySelector('.status-dot');
+    if (status.connected) {
+      dot.className = 'status-dot connected';
+      el.querySelector('span:last-child').textContent = 'Connected';
+    }
+  } catch {}
+}
+
+document.getElementById('btn-connect-sheets')?.addEventListener('click', async () => {
+  try {
+    const result = await sendMessage({ action: 'GOOGLE_SHEETS_CONNECT' });
+    document.getElementById('sheets-result').textContent = result.connected ? '\u2713 Connected!' : 'Failed to connect';
+    document.getElementById('sheets-result').className = 'status-msg' + (result.connected ? ' status-ok' : ' status-error');
+    updateSheetsStatus();
+  } catch (err) {
+    document.getElementById('sheets-result').textContent = '\u2717 ' + err.message;
+    document.getElementById('sheets-result').className = 'status-msg status-error';
+  }
+});
+
+document.getElementById('btn-backup-now')?.addEventListener('click', async () => {
+  try {
+    const result = await sendMessage({ action: 'GOOGLE_SHEETS_CONNECT' });
+    if (result.connected) {
+      document.getElementById('sheets-result').textContent = 'Backed up! Open in Google Sheets';
+      document.getElementById('sheets-result').className = 'status-msg status-ok';
+    }
+  } catch (err) {
+    document.getElementById('sheets-result').textContent = '\u2717 ' + err.message;
+    document.getElementById('sheets-result').className = 'status-msg status-error';
+  }
+});
+
+document.getElementById('btn-export-drive')?.addEventListener('click', async () => {
+  try {
+    const result = await sendMessage({ action: 'EXPORT_TO_DRIVE' });
+    const el = document.getElementById('drive-result');
+    if (result.fileUrl) {
+      el.innerHTML = '\u2713 Exported: <a href="' + result.fileUrl + '" target="_blank">' + result.fileName + '</a>';
+      el.className = 'status-msg status-ok';
+    }
+  } catch (err) {
+    document.getElementById('drive-result').textContent = '\u2717 ' + err.message;
+    document.getElementById('drive-result').className = 'status-msg status-error';
+  }
+});
+
+// ─── CSV Export ───────────────────────────────────────────────────────────────
+
+document.getElementById('btn-export-csv')?.addEventListener('click', async () => {
+  const { getBookmarkIndex, getSummary } = await import('../shared/storage-schema.js');
+  const index = await getBookmarkIndex();
+  const entries = Object.values(index);
+
+  const BOM = '\uFEFF';
+  const headers = 'URL,Title,Summary,Category,Tags,Rank,Date';
+  const rows = [BOM + headers];
+  for (const e of entries) {
+    const summary = e.summaryRef ? (await getSummary(e.id))?.summary || '' : '';
+    const csvRow = [e.url, e.title, summary, e.categoryId||'', (e.tags||[]).join('; '), e.rankScore||0,
+      e.createdAt ? new Date(e.createdAt).toISOString().split('T')[0] : '']
+      .map(f => { const s = String(f||''); return s.includes(',') ? '"' + s.replace(/"/g,'""') + '"' : s; }).join(',');
+    rows.push(csvRow);
+  }
+  const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'ai-bookmarks.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+});
+
+// ─── Theme Toggle ──────────────────────────────────────────────────────────────
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('ai-bookmarks-theme', theme);
+}
+
+function initTheme() {
+  const saved = localStorage.getItem('ai-bookmarks-theme');
+  if (saved) { applyTheme(saved); return; }
+  if (window.matchMedia('(prefers-color-scheme: dark)').matches) applyTheme('dark');
+}
+
+document.getElementById('btn-theme-toggle')?.addEventListener('click', () => {
+  const current = document.documentElement.getAttribute('data-theme');
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+});
+
+// Init theme on load
+initTheme();
+updateSheetsStatus();
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 

@@ -193,3 +193,26 @@ function sendMessage(message) {
 // ─── Start ────────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', init);
+  // Theme management
+  initTheme();
+  document.getElementById('btn-theme').addEventListener('click', toggleTheme);
+});
+
+function initTheme() {
+  const saved = localStorage.getItem('ai-bookmarks-theme');
+  if (saved) {
+    document.documentElement.setAttribute('data-theme', saved);
+    return;
+  }
+  if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('ai-bookmarks-theme', next);
+}
+

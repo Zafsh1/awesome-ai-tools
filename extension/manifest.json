@@ -18,10 +18,9 @@
 
   "host_permissions": [
     "https://api.anthropic.com/*",
-    "https://*.firebaseio.com/*",
-    "https://firestore.googleapis.com/*",
-    "https://identitytoolkit.googleapis.com/*",
-    "https://securetoken.googleapis.com/*"
+    "https://openrouter.ai/*",
+    "https://www.googleapis.com/*",
+    "https://sheets.googleapis.com/*"
   ],
 
   "background": {
@@ -59,7 +58,7 @@
   },
 
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; connect-src https://api.anthropic.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.firebaseio.com"
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src https://api.anthropic.com https://openrouter.ai https://www.googleapis.com https://sheets.googleapis.com"
   },
 
   "web_accessible_resources": [

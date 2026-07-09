@@ -138,5 +138,89 @@
   "saveSettings": {
     "message": "Save Settings",
     "description": "Save settings button"
+  },
+  "tabApi": {
+    "message": "API",
+    "description": "UI: tabApi"
+  },
+  "tabImport": {
+    "message": "Import",
+    "description": "UI: tabImport"
+  },
+  "tabBackup": {
+    "message": "Backup",
+    "description": "UI: tabBackup"
+  },
+  "tabAbout": {
+    "message": "About",
+    "description": "UI: tabAbout"
+  },
+  "themeToggle": {
+    "message": "Theme",
+    "description": "UI: themeToggle"
+  },
+  "scanExisting": {
+    "message": "Scan Existing Bookmarks",
+    "description": "UI: scanExisting"
+  },
+  "scanDesc": {
+    "message": "Import all bookmarks from Chrome and process them with AI",
+    "description": "UI: scanDesc"
+  },
+  "scanBtn": {
+    "message": "Scan & Import",
+    "description": "UI: scanBtn"
+  },
+  "uploadHtml": {
+    "message": "Upload Bookmarks File",
+    "description": "UI: uploadHtml"
+  },
+  "uploadDesc": {
+    "message": "Upload an HTML export file from Chrome",
+    "description": "UI: uploadDesc"
+  },
+  "uploadBtn": {
+    "message": "Upload & Import",
+    "description": "UI: uploadBtn"
+  },
+  "sheetsBackup": {
+    "message": "Backup to Google Sheets",
+    "description": "UI: sheetsBackup"
+  },
+  "sheetsDesc": {
+    "message": "Save all bookmarks with AI data to a Google Sheet",
+    "description": "UI: sheetsDesc"
+  },
+  "sheetsNotConnected": {
+    "message": "Not connected",
+    "description": "UI: sheetsNotConnected"
+  },
+  "connectBtn": {
+    "message": "Connect Google Sheets",
+    "description": "UI: connectBtn"
+  },
+  "backupNowBtn": {
+    "message": "Backup Now",
+    "description": "UI: backupNowBtn"
+  },
+  "driveExport": {
+    "message": "Export to Google Drive",
+    "description": "UI: driveExport"
+  },
+  "driveDesc": {
+    "message": "Export a CSV file to your Google Drive",
+    "description": "UI: driveDesc"
+  },
+  "exportDriveBtn": {
+    "message": "Export to Drive",
+    "description": "UI: exportDriveBtn"
+  },
+  "exportCsvBtn": {
+    "message": "Export as CSV",
+    "description": "UI: exportCsvBtn"
+  },
+  "cancelBtn": {
+    "message": "Cancel",
+    "description": "UI: cancelBtn"
   }
 }
