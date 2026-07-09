@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extensionName__",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "__MSG_extensionDescription__",
   "default_locale": "en",
 
@@ -17,11 +17,20 @@
   ],
 
   "host_permissions": [
+    "https://openrouter.ai/*",
     "https://api.anthropic.com/*",
     "https://openrouter.ai/*",
     "https://www.googleapis.com/*",
     "https://sheets.googleapis.com/*"
   ],
+
+  "oauth2": {
+    "client_id": "YOUR_GOOGLE_OAUTH_CLIENT_ID.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/spreadsheets",
+      "https://www.googleapis.com/auth/drive.file"
+    ]
+  },
 
   "background": {
     "service_worker": "background/service-worker.js",
@@ -43,7 +52,7 @@
       "16": "icons/icon-16.png",
       "32": "icons/icon-32.png"
     },
-    "default_title": "AI Bookmarks"
+    "default_title": "__MSG_extensionName__"
   },
 
   "options_ui": {

@@ -36,7 +36,7 @@ async function setupContextMenus() {
   });
 }
 
-// ─── Alarms (keep service worker alive for periodic work) ─────────────────────
+// ─── Alarms (periodic work that survives worker dormancy) ─────────────────────
 
 async function setupAlarms() {
   // Process AI queue every 2 minutes if needed
@@ -100,7 +100,6 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) return;
   try {
     await recordVisit(tab.url);
-    // Bump rank score for bookmarks matching this URL (async, non-blocking)
     await bumpRankForUrl(tab.url);
   } catch (err) {
     logError('tabs.onUpdated', err);
@@ -113,7 +112,7 @@ async function bumpRankForUrl(url) {
   const index = await getBookmarkIndex();
   let changed = false;
 
-  for (const [id, entry] of Object.entries(index)) {
+  for (const entry of Object.values(index)) {
     if (entry.url === url || entry.url === url + '/') {
       entry.visitCount = (entry.visitCount || 0) + 1;
       entry.lastVisited = Date.now();
@@ -130,9 +129,8 @@ async function bumpRankForUrl(url) {
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId === CONTEXT_MENU.BOOKMARK_PAGE && tab?.url) {
     try {
-      // Create a bookmark for the current page via the bookmarks API
       await chrome.bookmarks.create({ title: tab.title || tab.url, url: tab.url });
-      // The onCreated listener will handle AI enrichment
+      // The onCreated listener handles AI enrichment
     } catch (err) {
       logError('contextMenu.BOOKMARK_PAGE', err);
     }
@@ -151,7 +149,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true; // Keep message channel open for async response
 });
 
-async function handleMessage(message, sender) {
+async function handleMessage(message) {
   const { action, payload } = message;
 
   switch (action) {
@@ -161,7 +159,6 @@ async function handleMessage(message, sender) {
     }
 
     case ACTIONS.GET_SETTINGS: {
-      const { getSettings } = await import('../shared/storage-schema.js');
       return getSettings();
     }
 
@@ -172,8 +169,7 @@ async function handleMessage(message, sender) {
     }
 
     case ACTIONS.RETRY_AI: {
-      const { enqueuePending, getBookmarkByChromeId } = await import('../shared/storage-schema.js');
-      const { upsertBookmark } = await import('../shared/storage-schema.js');
+      const { enqueuePending, getBookmarkByChromeId, upsertBookmark } = await import('../shared/storage-schema.js');
       const entry = await getBookmarkByChromeId(payload.chromeBookmarkId);
       if (entry) {
         entry.aiStatus = 'pending';
@@ -231,6 +227,30 @@ async function handleMessage(message, sender) {
       const { deleteBookmark } = await import('../shared/storage-schema.js');
       await deleteBookmark(payload.bookmarkId);
       return { ok: true };
+    }
+
+    case ACTIONS.IMPORT_EXISTING: {
+      const { importExistingBookmarks } = await import('./importer.js');
+      return importExistingBookmarks();
+    }
+
+    case ACTIONS.GET_IMPORT_PROGRESS: {
+      const { getImportProgress } = await import('./importer.js');
+      return getImportProgress();
+    }
+
+    case ACTIONS.BACKUP_TO_SHEETS: {
+      const { backupAllBookmarks } = await import('./sheets-client.js');
+      return backupAllBookmarks(true);
+    }
+
+    case ACTIONS.GET_BACKUP_STATUS: {
+      const settings = await getSettings();
+      return {
+        enabled: settings.sheetsBackupEnabled,
+        spreadsheetId: settings.spreadsheetId,
+        lastBackup: settings.lastBackupTimestamp,
+      };
     }
 
     default:

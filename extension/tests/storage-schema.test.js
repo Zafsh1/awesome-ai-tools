@@ -53,17 +53,18 @@ describe('settings', () => {
   });
 
   test('saveSettings persists and getSettings merges over defaults', async () => {
-    await saveSettings({ claudeApiKey: 'encrypted-blob' });
+    await saveSettings({ apiKey: 'encrypted-blob' });
     const s = await getSettings();
-    assert.equal(s.claudeApiKey, 'encrypted-blob');
+    assert.equal(s.apiKey, 'encrypted-blob');
     assert.equal(s.enableAiSummaries, true); // default preserved
+    assert.equal(s.provider, 'openrouter'); // default provider
   });
 
   test('updateSettings merges partial updates', async () => {
-    await saveSettings({ claudeApiKey: 'k1', syncEnabled: false });
-    const updated = await updateSettings({ syncEnabled: true });
-    assert.equal(updated.syncEnabled, true);
-    assert.equal(updated.claudeApiKey, 'k1');
+    await saveSettings({ apiKey: 'k1', sheetsBackupEnabled: false });
+    const updated = await updateSettings({ sheetsBackupEnabled: true });
+    assert.equal(updated.sheetsBackupEnabled, true);
+    assert.equal(updated.apiKey, 'k1');
   });
 });
 

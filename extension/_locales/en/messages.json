@@ -127,10 +127,6 @@
     "message": "Ranking",
     "description": "Options tab: ranking"
   },
-  "tabSync": {
-    "message": "Sync",
-    "description": "Options tab: sync"
-  },
   "tabData": {
     "message": "Data",
     "description": "Options tab: data"

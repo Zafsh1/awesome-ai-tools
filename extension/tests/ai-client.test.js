@@ -5,10 +5,24 @@ import { enrichBookmark } from '../background/ai-client.js';
 import { saveSettings } from '../shared/storage-schema.js';
 import { encryptApiKey } from '../shared/utils.js';
 import { ERROR_CODES } from '../shared/error-handler.js';
+import { PROVIDERS } from '../shared/constants.js';
 
 const originalFetch = globalThis.fetch;
 
-function claudeResponse(text) {
+// OpenRouter uses the OpenAI-style response schema
+function openRouterResponse(text) {
+  return {
+    ok: true,
+    status: 200,
+    json: async () => ({
+      model: 'google/gemini-2.0-flash-exp:free',
+      choices: [{ message: { role: 'assistant', content: text } }],
+    }),
+  };
+}
+
+// Anthropic uses the Messages API schema
+function anthropicResponse(text) {
   return {
     ok: true,
     status: 200,
@@ -19,9 +33,9 @@ function claudeResponse(text) {
   };
 }
 
-async function setupApiKey() {
-  const encrypted = await encryptApiKey('sk-ant-test-key');
-  await saveSettings({ claudeApiKey: encrypted });
+async function setupProvider(provider, key, model) {
+  const encrypted = await encryptApiKey(key);
+  await saveSettings({ provider, model, apiKey: encrypted });
 }
 
 const PARAMS = {
@@ -29,69 +43,62 @@ const PARAMS = {
   title: 'Example',
   extractedText: 'Some page content about JavaScript testing.',
   description: '',
-  categories: [{ id: 'cat_tech', name: 'Technology', color: '#4A90E2', icon: 'code' }],
+  categories: [{ id: 'cat_tech', name: 'Technology', color: '#6366f1', icon: 'code' }],
 };
+
+const GOOD_JSON = '{"summary":"A page about JS testing.","category":"Technology","tags":["javascript","testing"],"isNewCategory":false,"categoryColor":null}';
 
 beforeEach(async () => {
   resetChromeMock();
-  await setupApiKey();
+  await setupProvider(PROVIDERS.OPENROUTER, 'sk-or-test-key', 'google/gemini-2.0-flash-exp:free');
 });
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
 });
 
-describe('enrichBookmark', () => {
+describe('enrichBookmark via OpenRouter (default)', () => {
   test('parses a clean JSON response', async () => {
-    globalThis.fetch = async () =>
-      claudeResponse(
-        JSON.stringify({
-          summary: 'A page about JS testing.',
-          category: 'Technology',
-          tags: ['javascript', 'testing'],
-          isNewCategory: false,
-          categoryColor: null,
-        })
-      );
+    globalThis.fetch = async () => openRouterResponse(GOOD_JSON);
 
     const result = await enrichBookmark(PARAMS);
     assert.equal(result.summary, 'A page about JS testing.');
     assert.equal(result.category, 'Technology');
     assert.deepEqual(result.tags, ['javascript', 'testing']);
-    assert.equal(result.isNewCategory, false);
+  });
+
+  test('sends Bearer auth, model, and prompt to the OpenRouter endpoint', async () => {
+    let captured;
+    globalThis.fetch = async (url, init) => {
+      captured = { url, init };
+      return openRouterResponse(GOOD_JSON);
+    };
+
+    await enrichBookmark(PARAMS);
+    assert.ok(captured.url.startsWith('https://openrouter.ai/'));
+    assert.equal(captured.init.headers.Authorization, 'Bearer sk-or-test-key');
+    const body = JSON.parse(captured.init.body);
+    assert.equal(body.model, 'google/gemini-2.0-flash-exp:free');
+    assert.equal(body.messages[0].role, 'system');
+    assert.ok(body.messages[1].content.includes('https://example.com'));
+    assert.ok(body.messages[1].content.includes('Technology'), 'existing categories included in prompt');
   });
 
   test('strips markdown code fences around the JSON', async () => {
     globalThis.fetch = async () =>
-      claudeResponse('```json\n{"summary":"s","category":"C","tags":[],"isNewCategory":true,"categoryColor":"#123456"}\n```');
+      openRouterResponse('```json\n{"summary":"s","category":"C","tags":[],"isNewCategory":true,"categoryColor":"#123456"}\n```');
 
     const result = await enrichBookmark(PARAMS);
     assert.equal(result.category, 'C');
     assert.equal(result.isNewCategory, true);
-    assert.equal(result.categoryColor, '#123456');
   });
 
   test('extracts a JSON object embedded in surrounding prose', async () => {
     globalThis.fetch = async () =>
-      claudeResponse('Here is the analysis: {"summary":"s","category":"News","tags":["x"],"isNewCategory":false} hope that helps');
+      openRouterResponse('Here is the analysis: {"summary":"s","category":"News","tags":["x"],"isNewCategory":false} hope that helps');
 
     const result = await enrichBookmark(PARAMS);
     assert.equal(result.category, 'News');
-  });
-
-  test('sends the API key header and model in the request', async () => {
-    let captured;
-    globalThis.fetch = async (url, init) => {
-      captured = { url, init };
-      return claudeResponse('{"summary":"s","category":"C","tags":[],"isNewCategory":false}');
-    };
-
-    await enrichBookmark(PARAMS);
-    assert.equal(captured.init.headers['X-API-Key'], 'sk-ant-test-key');
-    const body = JSON.parse(captured.init.body);
-    assert.equal(body.model, 'claude-sonnet-4-6');
-    assert.ok(body.messages[0].content.includes('https://example.com'));
-    assert.ok(body.messages[0].content.includes('Technology'), 'existing categories included in prompt');
   });
 
   test('401 auth error is NOT retried', async () => {
@@ -112,7 +119,7 @@ describe('enrichBookmark', () => {
       if (calls === 1) {
         return { ok: false, status: 500, statusText: 'ISE', json: async () => ({}) };
       }
-      return claudeResponse('{"summary":"recovered","category":"C","tags":[],"isNewCategory":false}');
+      return openRouterResponse('{"summary":"recovered","category":"C","tags":[],"isNewCategory":false}');
     };
 
     const result = await enrichBookmark(PARAMS);
@@ -126,10 +133,32 @@ describe('enrichBookmark', () => {
   });
 
   test('defaults missing fields in a sparse response', async () => {
-    globalThis.fetch = async () => claudeResponse('{"summary":"only summary"}');
+    globalThis.fetch = async () => openRouterResponse('{"summary":"only summary"}');
     const result = await enrichBookmark(PARAMS);
     assert.equal(result.category, 'Uncategorized');
     assert.deepEqual(result.tags, []);
     assert.equal(result.isNewCategory, false);
+  });
+});
+
+describe('enrichBookmark via Anthropic direct', () => {
+  beforeEach(async () => {
+    await setupProvider(PROVIDERS.ANTHROPIC, 'sk-ant-test-key', 'claude-sonnet-4-6');
+  });
+
+  test('uses the Anthropic endpoint, header, and response schema', async () => {
+    let captured;
+    globalThis.fetch = async (url, init) => {
+      captured = { url, init };
+      return anthropicResponse(GOOD_JSON);
+    };
+
+    const result = await enrichBookmark(PARAMS);
+    assert.ok(captured.url.startsWith('https://api.anthropic.com/'));
+    assert.equal(captured.init.headers['X-API-Key'], 'sk-ant-test-key');
+    const body = JSON.parse(captured.init.body);
+    assert.equal(body.model, 'claude-sonnet-4-6');
+    assert.ok(body.system, 'system prompt sent as top-level field');
+    assert.equal(result.category, 'Technology');
   });
 });

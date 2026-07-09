@@ -65,6 +65,7 @@ body {
 .app {
   display: flex;
   min-height: 100vh;
+  transition: background .2s, color .2s;
 }
 
 /* Sidebar */

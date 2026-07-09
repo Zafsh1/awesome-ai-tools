@@ -168,8 +168,13 @@ async function processSingleBookmark(queueItem) {
 
     await upsertBookmark(updatedEntry);
 
-    // Step 5: Notify popup
+    // Step 5: Notify popup, tick import progress, schedule Sheets auto-backup
     notifyPopup({ action: ACTIONS.BOOKMARK_ENRICHED, payload: updatedEntry });
+
+    const { bumpImportProcessed } = await import('./importer.js');
+    await bumpImportProcessed();
+    const { scheduleAutoBackup } = await import('./sheets-client.js');
+    await scheduleAutoBackup();
 
     console.log(`[AI Bookmarks] Enriched: ${title} → ${result.category}`);
   } catch (err) {

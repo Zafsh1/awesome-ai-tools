@@ -12,11 +12,28 @@ let settings = {};
 
 async function init() {
   localizeDocument();
+  applyTheme(localStorage.getItem('theme') || 'auto');
   settings = await getSettings();
   populateForm();
   setupTabs();
   setupListeners();
   renderCategories();
+  refreshBackupStatus();
+  pollImportProgress();
+}
+
+// ─── Theme ────────────────────────────────────────────────────────────────────
+
+function applyTheme(theme) {
+  const root = document.documentElement;
+  if (theme === 'auto') {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    root.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+  } else {
+    root.setAttribute('data-theme', theme);
+  }
+  const btn = document.getElementById('btn-theme');
+  if (btn) btn.textContent = theme === 'dark' ? '🌙' : theme === 'light' ? '☀️' : '◐';
 }
 
 // ─── Form Population ──────────────────────────────────────────────────────────
@@ -46,12 +63,10 @@ async function populateForm() {
   const orKey = settings.openrouterApiKey ? await decryptApiKey(settings.openrouterApiKey) : '';
   document.getElementById('openrouter-api-key').value = orKey || '';
 
-  // Checkboxes
   document.getElementById('enable-categories').checked = settings.enableAutoCategories !== false;
   document.getElementById('enable-summaries').checked = settings.enableAiSummaries !== false;
   document.getElementById('enable-ranking').checked = settings.rankingEnabled !== false;
 
-  // Ranking weights
   const w = settings.rankWeights || RANK_WEIGHTS;
   setSlider('weight-visits', Math.round((w.VISIT_COUNT || 0.4) * 100));
   setSlider('weight-recency', Math.round((w.RECENCY || 0.3) * 100));
@@ -95,7 +110,6 @@ function setupListeners() {
     handleTestKey({ provider: 'openrouter', inputId: 'openrouter-api-key', statusId: 'openrouter-key-status', btnId: 'btn-test-or-key' })
   );
 
-  // Ranking sliders
   ['weight-visits', 'weight-recency', 'weight-relevance', 'weight-shares'].forEach((id) => {
     document.getElementById(id).addEventListener('input', (e) => {
       document.getElementById(id + '-val').textContent = e.target.value + '%';
@@ -103,24 +117,20 @@ function setupListeners() {
     });
   });
 
-  // Add category
   document.getElementById('btn-add-category').addEventListener('click', addCategory);
 
   // Export
   document.getElementById('btn-export-json').addEventListener('click', exportJson);
   document.getElementById('btn-export-html').addEventListener('click', exportHtml);
-
-  // Import
   document.getElementById('btn-import').addEventListener('click', () => {
     document.getElementById('import-file').click();
   });
-  document.getElementById('import-file').addEventListener('change', handleImport);
+  document.getElementById('import-file').addEventListener('change', handleImportFile);
 
   // Danger zone
   document.getElementById('btn-clear-ai-data').addEventListener('click', handleClearAiData);
   document.getElementById('btn-reset-all').addEventListener('click', handleResetAll);
 
-  // Save
   document.getElementById('btn-save').addEventListener('click', handleSave);
 }
 
@@ -202,7 +212,7 @@ function addCategory() {
   const name = prompt('Category name:');
   if (!name?.trim()) return;
   settings.categories = settings.categories || [];
-  settings.categories.push({ id: generateId('cat'), name: name.trim(), color: '#4A90E2', icon: 'bookmark' });
+  settings.categories.push({ id: generateId('cat'), name: name.trim(), color: '#6366f1', icon: 'bookmark' });
   renderCategories();
 }
 
@@ -221,45 +231,58 @@ function checkWeightTotal() {
     parseInt(document.getElementById('weight-relevance').value) +
     parseInt(document.getElementById('weight-shares').value);
 
-  const warning = document.getElementById('weight-total-warning');
-  warning.style.display = total !== 100 ? 'block' : 'none';
+  document.getElementById('weight-total-warning').style.display = total !== 100 ? 'block' : 'none';
 }
 
 // ─── Export / Import ──────────────────────────────────────────────────────────
 
-async function exportJson() {
+async function collectExportRows() {
   const { getBookmarkIndex, getSummary } = await import('../shared/storage-schema.js');
   const index = await getBookmarkIndex();
-  const entries = Object.values(index);
-
-  const withSummaries = await Promise.all(
+  const entries = Object.values(index).sort((a, b) => (b.rankScore || 0) - (a.rankScore || 0));
+  return Promise.all(
     entries.map(async (e) => ({
       ...e,
-      summary: (await getSummary(e.id))?.summary || '',
+      summary: e.summaryRef ? (await getSummary(e.id))?.summary || '' : '',
+      categoryName: settings.categories.find((c) => c.id === e.categoryId)?.name || '',
     }))
   );
+}
 
-  const blob = new Blob([JSON.stringify({ version: 1, bookmarks: withSummaries }, null, 2)], { type: 'application/json' });
-  downloadBlob(blob, `ai-bookmarks-export-${Date.now()}.json`);
+async function exportCsv() {
+  const rows = await collectExportRows();
+  const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const lines = [
+    ['Title', 'URL', 'Category', 'Tags', 'Summary', 'Rank', 'Visits', 'Created'].map(esc).join(','),
+    ...rows.map((r) =>
+      [r.title, r.url, r.categoryName, (r.tags || []).join('; '), r.summary, r.rankScore, r.visitCount,
+        r.createdAt ? new Date(r.createdAt).toISOString().slice(0, 10) : ''].map(esc).join(',')
+    ),
+  ];
+  // BOM so Excel opens Hebrew/Chinese text correctly
+  const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  downloadBlob(blob, `ai-bookmarks-${new Date().toISOString().slice(0, 10)}.csv`);
+}
+
+async function exportJson() {
+  const rows = await collectExportRows();
+  const blob = new Blob([JSON.stringify({ version: 2, bookmarks: rows }, null, 2)], { type: 'application/json' });
+  downloadBlob(blob, `ai-bookmarks-${new Date().toISOString().slice(0, 10)}.json`);
 }
 
 async function exportHtml() {
-  const { getBookmarkIndex } = await import('../shared/storage-schema.js');
-  const index = await getBookmarkIndex();
-  const entries = Object.values(index);
-
+  const rows = await collectExportRows();
   const lines = [
     '<!DOCTYPE NETSCAPE-Bookmark-file-1>',
     '<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">',
     '<TITLE>AI Bookmarks Export</TITLE>',
     '<H1>AI Bookmarks</H1>',
     '<DL><p>',
-    ...entries.map((e) => `  <DT><A HREF="${e.url}" ADD_DATE="${Math.floor((e.createdAt || Date.now()) / 1000)}">${e.title || e.url}</A>`),
+    ...rows.map((e) => `  <DT><A HREF="${e.url}" ADD_DATE="${Math.floor((e.createdAt || Date.now()) / 1000)}">${e.title || e.url}</A>`),
     '</DL><p>',
   ];
-
   const blob = new Blob([lines.join('\n')], { type: 'text/html' });
-  downloadBlob(blob, `ai-bookmarks-export-${Date.now()}.html`);
+  downloadBlob(blob, `ai-bookmarks-${new Date().toISOString().slice(0, 10)}.html`);
 }
 
 function downloadBlob(blob, filename) {
@@ -273,7 +296,7 @@ function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
-async function handleImport(e) {
+async function handleImportFile(e) {
   const file = e.target.files[0];
   if (!file) return;
 
@@ -291,7 +314,7 @@ async function handleImport(e) {
     alert(`Import failed: ${err.message}`);
   }
 
-  e.target.value = ''; // Reset file input
+  e.target.value = '';
 }
 
 // ─── Danger Zone ──────────────────────────────────────────────────────────────
@@ -346,7 +369,6 @@ async function saveCurrentSettings() {
   const encryptedKey = await encryptIfChanged('api-key', settings.claudeApiKey, '');
   const encryptedOrKey = await encryptIfChanged('openrouter-api-key', settings.openrouterApiKey, null);
 
-  // Ranking weights
   const totalWeight =
     parseInt(document.getElementById('weight-visits').value) +
     parseInt(document.getElementById('weight-recency').value) +
@@ -393,6 +415,7 @@ function sendMessage(message) {
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage(message, (response) => {
       if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+      else if (response?.error) reject(new Error(response.error));
       else resolve(response);
     });
   });
