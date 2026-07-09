@@ -95,13 +95,124 @@
   "tabRanking": {
     "message": "排名"
   },
-  "tabSync": {
-    "message": "同步"
-  },
   "tabData": {
     "message": "数据"
   },
   "saveSettings": {
     "message": "保存设置"
+  },
+  "tabBackup": {
+    "message": "备份与导入"
+  },
+  "freeKeyGuideTitle": {
+    "message": "🎁 2 分钟获取免费 AI 密钥"
+  },
+  "freeKeyStep1": {
+    "message": "使用 Google 账号登录"
+  },
+  "freeKeyStep2": {
+    "message": "点击 \"Create Key\" 并复制密钥（以 sk-or- 开头）"
+  },
+  "freeKeyStep3": {
+    "message": "粘贴到下方并选择免费模型 — 完成，每月 $0"
+  },
+  "providerLabel": {
+    "message": "AI 提供商"
+  },
+  "modelLabel": {
+    "message": "AI 模型"
+  },
+  "modelDesc": {
+    "message": "免费模型完全免费，用于书签整理绰绰有余。"
+  },
+  "apiKeyLabel": {
+    "message": "API 密钥"
+  },
+  "testKey": {
+    "message": "测试"
+  },
+  "aiFeaturesLabel": {
+    "message": "AI 功能"
+  },
+  "featAutoCategories": {
+    "message": "自动将书签分类到文件夹"
+  },
+  "featSummaries": {
+    "message": "为书签生成 AI 摘要"
+  },
+  "categoriesDesc": {
+    "message": "AI 会将书签分配到这些分类。"
+  },
+  "addCategory": {
+    "message": "+ 添加分类"
+  },
+  "rankingDesc": {
+    "message": "调整弹窗中书签的排名方式。权重之和必须为 100%。"
+  },
+  "enableRanking": {
+    "message": "启用智能排名"
+  },
+  "weightVisits": {
+    "message": "访问频率"
+  },
+  "weightRecency": {
+    "message": "最近访问"
+  },
+  "weightRelevance": {
+    "message": "AI 相关性"
+  },
+  "weightShares": {
+    "message": "分享热度"
+  },
+  "weightWarning": {
+    "message": "权重之和必须为 100%"
+  },
+  "importTitle": {
+    "message": "📥 导入现有书签"
+  },
+  "importDesc": {
+    "message": "扫描您 Chrome 中的所有现有书签，让 AI 整理、总结并排名每一个。在后台运行。"
+  },
+  "importButton": {
+    "message": "导入并整理现有书签"
+  },
+  "sheetsTitle": {
+    "message": "📊 Google 表格备份"
+  },
+  "sheetsDesc": {
+    "message": "将所有书签（含 AI 摘要、分类、标签和排名）备份到您 Google 云端硬盘中的电子表格。随时用 Excel/表格打开 — 完全透明，无需服务器。"
+  },
+  "sheetsAutoBackup": {
+    "message": "每日自动备份 + AI 处理后备份"
+  },
+  "backupNow": {
+    "message": "立即备份"
+  },
+  "openSheet": {
+    "message": "打开电子表格"
+  },
+  "exportTitle": {
+    "message": "导出"
+  },
+  "exportDesc": {
+    "message": "下载包含 AI 元数据的所有书签。"
+  },
+  "importJsonTitle": {
+    "message": "从文件导入"
+  },
+  "importJsonDesc": {
+    "message": "从 JSON 文件导入书签（之前从 AI 书签导出）。"
+  },
+  "dangerTitle": {
+    "message": "危险区域"
+  },
+  "dangerDesc": {
+    "message": "这些操作无法撤销。"
+  },
+  "clearAiData": {
+    "message": "清除 AI 数据"
+  },
+  "resetAll": {
+    "message": "重置全部"
   }
 }

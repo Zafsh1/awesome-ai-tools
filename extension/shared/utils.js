@@ -171,6 +171,12 @@ export function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function isValidApiKey(key) {
-  return typeof key === 'string' && key.startsWith('sk-ant-');
+/**
+ * Validates an API key format for the given provider.
+ * OpenRouter keys start with "sk-or-", Anthropic keys with "sk-ant-".
+ */
+export function isValidApiKey(key, provider = 'openrouter') {
+  if (typeof key !== 'string' || key.length < 10) return false;
+  if (provider === 'anthropic') return key.startsWith('sk-ant-');
+  return key.startsWith('sk-or-');
 }

@@ -186,15 +186,21 @@ describe('API key encryption', () => {
 });
 
 describe('isValidApiKey', () => {
-  test('accepts sk-ant- prefixed keys', () => {
-    assert.ok(isValidApiKey('sk-ant-api03-abc'));
+  test('defaults to OpenRouter: accepts sk-or- keys', () => {
+    assert.ok(isValidApiKey('sk-or-v1-abcdef123456'));
+    assert.ok(!isValidApiKey('sk-ant-api03-abc'));
   });
 
-  test('rejects other formats', () => {
-    assert.ok(!isValidApiKey('sk-openai-abc'));
+  test('anthropic provider accepts sk-ant- keys only', () => {
+    assert.ok(isValidApiKey('sk-ant-api03-abcdef', 'anthropic'));
+    assert.ok(!isValidApiKey('sk-or-v1-abcdef', 'anthropic'));
+  });
+
+  test('rejects garbage for any provider', () => {
     assert.ok(!isValidApiKey(''));
     assert.ok(!isValidApiKey(null));
     assert.ok(!isValidApiKey(123));
+    assert.ok(!isValidApiKey('sk-or-1', 'openrouter'), 'too short');
   });
 });
 

@@ -95,13 +95,124 @@
   "tabRanking": {
     "message": "排名"
   },
-  "tabSync": {
-    "message": "同步"
-  },
   "tabData": {
     "message": "資料"
   },
   "saveSettings": {
     "message": "儲存設定"
+  },
+  "tabBackup": {
+    "message": "備份與匯入"
+  },
+  "freeKeyGuideTitle": {
+    "message": "🎁 2 分鐘取得免費 AI 金鑰"
+  },
+  "freeKeyStep1": {
+    "message": "使用 Google 帳號登入"
+  },
+  "freeKeyStep2": {
+    "message": "點擊 \"Create Key\" 並複製金鑰（以 sk-or- 開頭）"
+  },
+  "freeKeyStep3": {
+    "message": "貼到下方並選擇免費模型 — 完成，每月 $0"
+  },
+  "providerLabel": {
+    "message": "AI 供應商"
+  },
+  "modelLabel": {
+    "message": "AI 模型"
+  },
+  "modelDesc": {
+    "message": "免費模型完全免費，用於書籤整理綽綽有餘。"
+  },
+  "apiKeyLabel": {
+    "message": "API 金鑰"
+  },
+  "testKey": {
+    "message": "測試"
+  },
+  "aiFeaturesLabel": {
+    "message": "AI 功能"
+  },
+  "featAutoCategories": {
+    "message": "自動將書籤分類到資料夾"
+  },
+  "featSummaries": {
+    "message": "為書籤產生 AI 摘要"
+  },
+  "categoriesDesc": {
+    "message": "AI 會將書籤分配到這些分類。"
+  },
+  "addCategory": {
+    "message": "+ 新增分類"
+  },
+  "rankingDesc": {
+    "message": "調整彈出視窗中書籤的排名方式。權重總和必須為 100%。"
+  },
+  "enableRanking": {
+    "message": "啟用智慧排名"
+  },
+  "weightVisits": {
+    "message": "造訪頻率"
+  },
+  "weightRecency": {
+    "message": "最近造訪"
+  },
+  "weightRelevance": {
+    "message": "AI 相關性"
+  },
+  "weightShares": {
+    "message": "分享熱度"
+  },
+  "weightWarning": {
+    "message": "權重總和必須為 100%"
+  },
+  "importTitle": {
+    "message": "📥 匯入現有書籤"
+  },
+  "importDesc": {
+    "message": "掃描您 Chrome 中的所有現有書籤，讓 AI 整理、摘要並排名每一個。在背景執行。"
+  },
+  "importButton": {
+    "message": "匯入並整理現有書籤"
+  },
+  "sheetsTitle": {
+    "message": "📊 Google 試算表備份"
+  },
+  "sheetsDesc": {
+    "message": "將所有書籤（含 AI 摘要、分類、標籤和排名）備份到您 Google 雲端硬碟中的試算表。隨時用 Excel/試算表開啟 — 完全透明，無需伺服器。"
+  },
+  "sheetsAutoBackup": {
+    "message": "每日自動備份 + AI 處理後備份"
+  },
+  "backupNow": {
+    "message": "立即備份"
+  },
+  "openSheet": {
+    "message": "開啟試算表"
+  },
+  "exportTitle": {
+    "message": "匯出"
+  },
+  "exportDesc": {
+    "message": "下載包含 AI 中繼資料的所有書籤。"
+  },
+  "importJsonTitle": {
+    "message": "從檔案匯入"
+  },
+  "importJsonDesc": {
+    "message": "從 JSON 檔案匯入書籤（先前從 AI 書籤匯出）。"
+  },
+  "dangerTitle": {
+    "message": "危險區域"
+  },
+  "dangerDesc": {
+    "message": "這些操作無法復原。"
+  },
+  "clearAiData": {
+    "message": "清除 AI 資料"
+  },
+  "resetAll": {
+    "message": "重設全部"
   }
 }

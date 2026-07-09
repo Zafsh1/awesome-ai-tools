@@ -1,13 +1,10 @@
 // Main service worker — event hub for the AI Bookmarks extension.
 // MV3 service workers are ephemeral; ALL state is persisted to storage immediately.
 
-import { ACTIONS, CONTEXT_MENU, QUEUE_PROCESS_ALARM, RANKING_RECALC_ALARM, SYNC_ALARM } from '../shared/constants.js';
-import { handleBookmarkCreated, handleBookmarkRemoved, handleBookmarkChanged } from './bookmark-handler.js';
-import { processQueue } from './bookmark-handler.js';
+import { ACTIONS, CONTEXT_MENU, QUEUE_PROCESS_ALARM, RANKING_RECALC_ALARM, BACKUP_ALARM } from '../shared/constants.js';
+import { handleBookmarkCreated, handleBookmarkRemoved, handleBookmarkChanged, processQueue } from './bookmark-handler.js';
 import { recalculateAllRanks } from './ranker.js';
-import { syncWithFirebase } from './sync-manager.js';
-import { recordVisit } from '../shared/storage-schema.js';
-import { getSettings } from '../shared/storage-schema.js';
+import { recordVisit, getSettings } from '../shared/storage-schema.js';
 import { logError } from '../shared/error-handler.js';
 
 // ─── Installation ─────────────────────────────────────────────────────────────
@@ -37,15 +34,15 @@ async function setupContextMenus() {
   });
 }
 
-// ─── Alarms (keep service worker alive for periodic work) ─────────────────────
+// ─── Alarms (periodic work that survives worker dormancy) ─────────────────────
 
 async function setupAlarms() {
   // Process AI queue every 2 minutes if needed
   chrome.alarms.create(QUEUE_PROCESS_ALARM, { periodInMinutes: 2 });
   // Recalculate ranking scores daily
   chrome.alarms.create(RANKING_RECALC_ALARM, { periodInMinutes: 60 * 24 });
-  // Firebase sync every 5 minutes
-  chrome.alarms.create(SYNC_ALARM, { periodInMinutes: 5 });
+  // Daily Google Sheets backup (no-op unless enabled in settings)
+  chrome.alarms.create(BACKUP_ALARM, { periodInMinutes: 60 * 24 });
 }
 
 chrome.alarms.onAlarm.addListener(async ({ name }) => {
@@ -54,11 +51,9 @@ chrome.alarms.onAlarm.addListener(async ({ name }) => {
       await processQueue();
     } else if (name === RANKING_RECALC_ALARM) {
       await recalculateAllRanks();
-    } else if (name === SYNC_ALARM) {
-      const settings = await getSettings();
-      if (settings.syncEnabled && settings.firebaseToken) {
-        await syncWithFirebase();
-      }
+    } else if (name === BACKUP_ALARM || name === 'sheets_backup_debounce') {
+      const { runAutoBackup } = await import('./sheets-client.js');
+      await runAutoBackup();
     }
   } catch (err) {
     logError(`Alarm ${name}`, err);
@@ -100,7 +95,6 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) return;
   try {
     await recordVisit(tab.url);
-    // Bump rank score for bookmarks matching this URL (async, non-blocking)
     await bumpRankForUrl(tab.url);
   } catch (err) {
     logError('tabs.onUpdated', err);
@@ -113,7 +107,7 @@ async function bumpRankForUrl(url) {
   const index = await getBookmarkIndex();
   let changed = false;
 
-  for (const [id, entry] of Object.entries(index)) {
+  for (const entry of Object.values(index)) {
     if (entry.url === url || entry.url === url + '/') {
       entry.visitCount = (entry.visitCount || 0) + 1;
       entry.lastVisited = Date.now();
@@ -130,9 +124,8 @@ async function bumpRankForUrl(url) {
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId === CONTEXT_MENU.BOOKMARK_PAGE && tab?.url) {
     try {
-      // Create a bookmark for the current page via the bookmarks API
       await chrome.bookmarks.create({ title: tab.title || tab.url, url: tab.url });
-      // The onCreated listener will handle AI enrichment
+      // The onCreated listener handles AI enrichment
     } catch (err) {
       logError('contextMenu.BOOKMARK_PAGE', err);
     }
@@ -151,7 +144,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true; // Keep message channel open for async response
 });
 
-async function handleMessage(message, sender) {
+async function handleMessage(message) {
   const { action, payload } = message;
 
   switch (action) {
@@ -161,7 +154,6 @@ async function handleMessage(message, sender) {
     }
 
     case ACTIONS.GET_SETTINGS: {
-      const { getSettings } = await import('../shared/storage-schema.js');
       return getSettings();
     }
 
@@ -172,8 +164,7 @@ async function handleMessage(message, sender) {
     }
 
     case ACTIONS.RETRY_AI: {
-      const { enqueuePending, getBookmarkByChromeId } = await import('../shared/storage-schema.js');
-      const { upsertBookmark } = await import('../shared/storage-schema.js');
+      const { enqueuePending, getBookmarkByChromeId, upsertBookmark } = await import('../shared/storage-schema.js');
       const entry = await getBookmarkByChromeId(payload.chromeBookmarkId);
       if (entry) {
         entry.aiStatus = 'pending';
@@ -184,20 +175,34 @@ async function handleMessage(message, sender) {
       return { ok: true };
     }
 
-    case ACTIONS.SHARE_COLLECTION: {
-      const { shareCollection } = await import('./firebase-client.js');
-      return shareCollection(payload);
-    }
-
-    case ACTIONS.SYNC_NOW: {
-      await syncWithFirebase();
-      return { ok: true };
-    }
-
     case ACTIONS.DELETE_BOOKMARK: {
       const { deleteBookmark } = await import('../shared/storage-schema.js');
       await deleteBookmark(payload.bookmarkId);
       return { ok: true };
+    }
+
+    case ACTIONS.IMPORT_EXISTING: {
+      const { importExistingBookmarks } = await import('./importer.js');
+      return importExistingBookmarks();
+    }
+
+    case ACTIONS.GET_IMPORT_PROGRESS: {
+      const { getImportProgress } = await import('./importer.js');
+      return getImportProgress();
+    }
+
+    case ACTIONS.BACKUP_TO_SHEETS: {
+      const { backupAllBookmarks } = await import('./sheets-client.js');
+      return backupAllBookmarks(true);
+    }
+
+    case ACTIONS.GET_BACKUP_STATUS: {
+      const settings = await getSettings();
+      return {
+        enabled: settings.sheetsBackupEnabled,
+        spreadsheetId: settings.spreadsheetId,
+        lastBackup: settings.lastBackupTimestamp,
+      };
     }
 
     default:

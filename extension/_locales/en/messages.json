@@ -127,10 +127,6 @@
     "message": "Ranking",
     "description": "Options tab: ranking"
   },
-  "tabSync": {
-    "message": "Sync",
-    "description": "Options tab: sync"
-  },
   "tabData": {
     "message": "Data",
     "description": "Options tab: data"
@@ -138,5 +134,119 @@
   "saveSettings": {
     "message": "Save Settings",
     "description": "Save settings button"
+  },
+  "tabBackup": {
+    "message": "Backup & Import"
+  },
+  "freeKeyGuideTitle": {
+    "message": "🎁 Get a FREE AI key in 2 minutes"
+  },
+  "freeKeyStep1": {
+    "message": "Sign in with Google at"
+  },
+  "freeKeyStep2": {
+    "message": "Click \"Create Key\" and copy the key (starts with sk-or-)"
+  },
+  "freeKeyStep3": {
+    "message": "Paste it below and pick a FREE model — done, $0/month"
+  },
+  "providerLabel": {
+    "message": "AI Provider"
+  },
+  "modelLabel": {
+    "message": "AI Model"
+  },
+  "modelDesc": {
+    "message": "FREE models cost nothing and are plenty good for bookmark organization."
+  },
+  "apiKeyLabel": {
+    "message": "API Key"
+  },
+  "testKey": {
+    "message": "Test"
+  },
+  "aiFeaturesLabel": {
+    "message": "AI Features"
+  },
+  "featAutoCategories": {
+    "message": "Auto-categorize bookmarks into folders"
+  },
+  "featSummaries": {
+    "message": "Generate AI summaries for bookmarks"
+  },
+  "categoriesDesc": {
+    "message": "AI will assign bookmarks to these categories."
+  },
+  "addCategory": {
+    "message": "+ Add Category"
+  },
+  "rankingDesc": {
+    "message": "Adjust how bookmarks are ranked in the popup. Weights must sum to 100%."
+  },
+  "enableRanking": {
+    "message": "Enable smart ranking"
+  },
+  "weightVisits": {
+    "message": "Visit frequency"
+  },
+  "weightRecency": {
+    "message": "Recency"
+  },
+  "weightRelevance": {
+    "message": "AI relevance"
+  },
+  "weightShares": {
+    "message": "Share popularity"
+  },
+  "weightWarning": {
+    "message": "Weights must sum to 100%"
+  },
+  "importTitle": {
+    "message": "📥 Import your existing bookmarks"
+  },
+  "importDesc": {
+    "message": "Scans ALL your current Chrome bookmarks and lets the AI organize, summarize, and rank every one of them. Runs in the background."
+  },
+  "importButton": {
+    "message": "Import & Organize Existing Bookmarks"
+  },
+  "sheetsTitle": {
+    "message": "📊 Google Sheets backup"
+  },
+  "sheetsDesc": {
+    "message": "Backs up all bookmarks (with AI summaries, categories, tags & rankings) to a spreadsheet in YOUR Google Drive. Open it in Excel/Sheets anytime — full transparency, zero servers."
+  },
+  "sheetsAutoBackup": {
+    "message": "Auto-backup daily + after AI processing"
+  },
+  "backupNow": {
+    "message": "Backup Now"
+  },
+  "openSheet": {
+    "message": "Open Spreadsheet"
+  },
+  "exportTitle": {
+    "message": "Export"
+  },
+  "exportDesc": {
+    "message": "Download all your bookmarks with AI metadata."
+  },
+  "importJsonTitle": {
+    "message": "Import from file"
+  },
+  "importJsonDesc": {
+    "message": "Import bookmarks from a JSON file (previously exported from AI Bookmarks)."
+  },
+  "dangerTitle": {
+    "message": "Danger Zone"
+  },
+  "dangerDesc": {
+    "message": "These actions cannot be undone."
+  },
+  "clearAiData": {
+    "message": "Clear AI Data"
+  },
+  "resetAll": {
+    "message": "Reset Everything"
   }
 }

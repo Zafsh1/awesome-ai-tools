@@ -1,21 +1,25 @@
-// Claude API client with retry logic, rate limiting, and key decryption.
+// Provider-aware AI client: OpenRouter (default, has free models) or Anthropic direct.
+// Handles retry logic, rate limiting, and encrypted key storage.
 
 import {
-  CLAUDE_API_URL,
-  CLAUDE_MODEL,
-  CLAUDE_API_VERSION,
+  PROVIDERS,
+  OPENROUTER_API_URL,
+  ANTHROPIC_API_URL,
+  ANTHROPIC_API_VERSION,
   AI_MAX_RETRIES,
   AI_RETRY_DELAYS_MS,
   MAX_EXTRACTED_TEXT_LENGTH,
+  DEFAULT_MODEL,
 } from '../shared/constants.js';
 import { getSettings } from '../shared/storage-schema.js';
 import { decryptApiKey, sleep, truncate } from '../shared/utils.js';
 import { AiBookmarksError, ERROR_CODES, httpStatusToErrorCode, isRetryable, logError } from '../shared/error-handler.js';
 
-// Simple in-memory rate limiter (requests per minute)
+// Simple in-memory rate limiter (requests per minute).
+// Free OpenRouter models allow ~20 req/min, so stay under that.
 const rateLimiter = {
   requests: [],
-  maxPerMinute: 50,
+  maxPerMinute: 15,
   isLimited() {
     const now = Date.now();
     this.requests = this.requests.filter((t) => now - t < 60000);
@@ -27,33 +31,34 @@ const rateLimiter = {
 };
 
 /**
- * Calls Claude API to produce a summary + categorization for a bookmark.
- * Returns parsed JSON result.
+ * Calls the configured AI provider to produce a summary + categorization.
  *
- * @param {{ url: string, title: string, extractedText: string, description: string, categories: import('../shared/constants.js').Category[] }} params
+ * @param {{ url: string, title: string, extractedText: string, description: string, categories: Object[] }} params
  * @returns {Promise<{ summary: string, category: string, tags: string[], isNewCategory: boolean, categoryColor: string, model: string }>}
  */
 export async function enrichBookmark({ url, title, extractedText, description, categories }) {
   const settings = await getSettings();
 
-  if (!settings.claudeApiKey) {
+  if (!settings.apiKey) {
     throw new AiBookmarksError('No API key configured', ERROR_CODES.API_NO_KEY);
   }
 
-  const apiKey = await decryptApiKey(settings.claudeApiKey);
+  const apiKey = await decryptApiKey(settings.apiKey);
   if (!apiKey) {
     throw new AiBookmarksError('Could not decrypt API key', ERROR_CODES.API_AUTH);
   }
 
   const prompt = buildPrompt({ url, title, extractedText, description, categories });
+  const provider = settings.provider || PROVIDERS.OPENROUTER;
+  const model = settings.model || DEFAULT_MODEL;
 
-  return callClaudeWithRetry(apiKey, prompt);
+  return callWithRetry({ provider, apiKey, model, prompt });
 }
 
 /**
- * Makes a raw call to Claude. Used by options page to validate API key.
+ * Validates an API key with a minimal live call. Used by the options page.
  */
-export async function testApiKey(apiKey) {
+export async function testApiKey(provider, apiKey, model) {
   const prompt = buildPrompt({
     url: 'https://example.com',
     title: 'Test',
@@ -61,7 +66,7 @@ export async function testApiKey(apiKey) {
     description: '',
     categories: [],
   });
-  await callClaudeWithRetry(apiKey, prompt, 1);
+  await callWithRetry({ provider, apiKey, model: model || DEFAULT_MODEL, prompt, maxRetries: 1 });
   return true;
 }
 
@@ -94,46 +99,86 @@ function buildPrompt({ url, title, extractedText, description, categories }) {
 
 // ─── API Call with Retry ──────────────────────────────────────────────────────
 
-async function callClaudeWithRetry(apiKey, prompt, maxRetries = AI_MAX_RETRIES) {
+async function callWithRetry({ provider, apiKey, model, prompt, maxRetries = AI_MAX_RETRIES }) {
   let lastError;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    // Rate limiting
     if (rateLimiter.isLimited()) {
-      await sleep(2000);
+      await sleep(4000);
     }
 
     try {
-      const result = await callClaude(apiKey, prompt);
-      return result;
+      return provider === PROVIDERS.ANTHROPIC
+        ? await callAnthropic(apiKey, model, prompt)
+        : await callOpenRouter(apiKey, model, prompt);
     } catch (err) {
       lastError = err;
-      logError(`Claude API attempt ${attempt + 1}`, err);
+      logError(`AI call attempt ${attempt + 1} (${provider}/${model})`, err);
 
       if (!isRetryable(err) || attempt === maxRetries) break;
-
-      const delay = AI_RETRY_DELAYS_MS[attempt] || 4000;
-      await sleep(delay);
+      await sleep(AI_RETRY_DELAYS_MS[attempt] || 4000);
     }
   }
 
   throw lastError;
 }
 
-async function callClaude(apiKey, { system, userMessage }) {
+// ─── OpenRouter (OpenAI-compatible schema) ────────────────────────────────────
+
+async function callOpenRouter(apiKey, model, { system, userMessage }) {
   rateLimiter.record();
 
   let response;
   try {
-    response = await fetch(CLAUDE_API_URL, {
+    response = await fetch(OPENROUTER_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+        'HTTP-Referer': 'https://github.com/Zafsh1/awesome-ai-tools',
+        'X-Title': 'AI Bookmarks',
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 1024,
+        temperature: 0.2,
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: userMessage },
+        ],
+      }),
+    });
+  } catch (networkErr) {
+    throw new AiBookmarksError(`Network error: ${networkErr.message}`, ERROR_CODES.API_NETWORK);
+  }
+
+  await throwOnHttpError(response, 'OpenRouter');
+
+  const data = await parseJsonBody(response);
+  const text = data?.choices?.[0]?.message?.content;
+  if (!text) {
+    throw new AiBookmarksError('Empty response from OpenRouter', ERROR_CODES.API_PARSE);
+  }
+
+  return parseAiResponse(text, data.model || model);
+}
+
+// ─── Anthropic (Messages API schema) ──────────────────────────────────────────
+
+async function callAnthropic(apiKey, model, { system, userMessage }) {
+  rateLimiter.record();
+
+  let response;
+  try {
+    response = await fetch(ANTHROPIC_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-API-Key': apiKey,
-        'anthropic-version': CLAUDE_API_VERSION,
+        'anthropic-version': ANTHROPIC_API_VERSION,
       },
       body: JSON.stringify({
-        model: CLAUDE_MODEL,
+        model,
         max_tokens: 1024,
         temperature: 0.2,
         system,
@@ -144,32 +189,39 @@ async function callClaude(apiKey, { system, userMessage }) {
     throw new AiBookmarksError(`Network error: ${networkErr.message}`, ERROR_CODES.API_NETWORK);
   }
 
-  if (!response.ok) {
-    const errorCode = httpStatusToErrorCode(response.status);
-    let body;
-    try {
-      body = await response.json();
-    } catch {}
-    throw new AiBookmarksError(
-      `Claude API error ${response.status}: ${body?.error?.message || response.statusText}`,
-      errorCode,
-      { status: response.status, body }
-    );
-  }
+  await throwOnHttpError(response, 'Anthropic');
 
-  let data;
-  try {
-    data = await response.json();
-  } catch (err) {
-    throw new AiBookmarksError('Failed to parse Claude API response', ERROR_CODES.API_PARSE);
-  }
-
+  const data = await parseJsonBody(response);
   const text = data?.content?.[0]?.text;
   if (!text) {
-    throw new AiBookmarksError('Empty response from Claude API', ERROR_CODES.API_PARSE);
+    throw new AiBookmarksError('Empty response from Anthropic', ERROR_CODES.API_PARSE);
   }
 
-  return parseAiResponse(text, data.model || CLAUDE_MODEL);
+  return parseAiResponse(text, data.model || model);
+}
+
+// ─── Shared HTTP helpers ──────────────────────────────────────────────────────
+
+async function throwOnHttpError(response, providerName) {
+  if (response.ok) return;
+  const errorCode = httpStatusToErrorCode(response.status);
+  let body;
+  try {
+    body = await response.json();
+  } catch {}
+  throw new AiBookmarksError(
+    `${providerName} API error ${response.status}: ${body?.error?.message || response.statusText}`,
+    errorCode,
+    { status: response.status, body }
+  );
+}
+
+async function parseJsonBody(response) {
+  try {
+    return await response.json();
+  } catch {
+    throw new AiBookmarksError('Failed to parse API response', ERROR_CODES.API_PARSE);
+  }
 }
 
 // ─── Response Parsing ─────────────────────────────────────────────────────────

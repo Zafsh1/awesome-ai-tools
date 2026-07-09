@@ -1,10 +1,9 @@
 // Options page controller.
 
 import { getSettings, saveSettings } from '../shared/storage-schema.js';
-import { encryptApiKey, decryptApiKey, isValidApiKey, generateId, escapeHtml } from '../shared/utils.js';
+import { encryptApiKey, decryptApiKey, isValidApiKey, generateId, escapeHtml, timeAgo } from '../shared/utils.js';
 import { testApiKey } from '../background/ai-client.js';
-import { signInWithGoogle } from '../background/firebase-client.js';
-import { ACTIONS, DEFAULT_SETTINGS, RANK_WEIGHTS } from '../shared/constants.js';
+import { ACTIONS, RANK_WEIGHTS, MODEL_PRESETS, PROVIDERS, KEY_PREFIXES } from '../shared/constants.js';
 import { localizeDocument } from '../shared/i18n.js';
 
 let settings = {};
@@ -13,35 +12,70 @@ let settings = {};
 
 async function init() {
   localizeDocument();
+  applyTheme(localStorage.getItem('theme') || 'auto');
   settings = await getSettings();
   populateForm();
   setupTabs();
   setupListeners();
   renderCategories();
+  refreshBackupStatus();
+  pollImportProgress();
+}
+
+// ─── Theme ────────────────────────────────────────────────────────────────────
+
+function applyTheme(theme) {
+  const root = document.documentElement;
+  if (theme === 'auto') {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    root.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+  } else {
+    root.setAttribute('data-theme', theme);
+  }
+  const btn = document.getElementById('btn-theme');
+  if (btn) btn.textContent = theme === 'dark' ? '🌙' : theme === 'light' ? '☀️' : '◐';
 }
 
 // ─── Form Population ──────────────────────────────────────────────────────────
 
 async function populateForm() {
-  // API key (decrypt for display)
-  const apiKey = settings.claudeApiKey ? await decryptApiKey(settings.claudeApiKey) : '';
-  document.getElementById('api-key').value = apiKey || '';
+  document.getElementById('provider-select').value = settings.provider || PROVIDERS.OPENROUTER;
+  populateModelDropdown();
 
-  // Checkboxes
+  const apiKey = settings.apiKey ? await decryptApiKey(settings.apiKey) : '';
+  document.getElementById('api-key').value = apiKey || '';
+  updateKeyPlaceholder();
+
   document.getElementById('enable-categories').checked = settings.enableAutoCategories !== false;
   document.getElementById('enable-summaries').checked = settings.enableAiSummaries !== false;
   document.getElementById('enable-ranking').checked = settings.rankingEnabled !== false;
-  document.getElementById('enable-sync').checked = settings.syncEnabled === true;
+  document.getElementById('enable-sheets-backup').checked = settings.sheetsBackupEnabled === true;
 
-  // Ranking weights
   const w = settings.rankWeights || RANK_WEIGHTS;
   setSlider('weight-visits', Math.round((w.VISIT_COUNT || 0.4) * 100));
   setSlider('weight-recency', Math.round((w.RECENCY || 0.3) * 100));
   setSlider('weight-relevance', Math.round((w.AI_RELEVANCE || 0.2) * 100));
   setSlider('weight-shares', Math.round((w.SHARE_COUNT || 0.1) * 100));
+}
 
-  // Sync status
-  updateSyncStatus();
+function populateModelDropdown() {
+  const provider = document.getElementById('provider-select').value;
+  const select = document.getElementById('model-select');
+  const presets = MODEL_PRESETS[provider] || [];
+
+  select.innerHTML = presets
+    .map((m) => `<option value="${escapeHtml(m.id)}">${m.free ? '🎁 ' : ''}${escapeHtml(m.label)}</option>`)
+    .join('');
+
+  // Keep the saved model if it belongs to this provider, else pick the first
+  if (presets.some((m) => m.id === settings.model)) {
+    select.value = settings.model;
+  }
+}
+
+function updateKeyPlaceholder() {
+  const provider = document.getElementById('provider-select').value;
+  document.getElementById('api-key').placeholder = (KEY_PREFIXES[provider] || 'sk-') + '...';
 }
 
 function setSlider(id, value) {
@@ -65,7 +99,19 @@ function setupTabs() {
 // ─── Event Listeners ──────────────────────────────────────────────────────────
 
 function setupListeners() {
-  // API key: show/hide
+  document.getElementById('btn-theme').addEventListener('click', () => {
+    const order = ['auto', 'dark', 'light'];
+    const current = localStorage.getItem('theme') || 'auto';
+    const next = order[(order.indexOf(current) + 1) % order.length];
+    localStorage.setItem('theme', next);
+    applyTheme(next);
+  });
+
+  document.getElementById('provider-select').addEventListener('change', () => {
+    populateModelDropdown();
+    updateKeyPlaceholder();
+  });
+
   document.getElementById('btn-toggle-key').addEventListener('click', () => {
     const input = document.getElementById('api-key');
     const btn = document.getElementById('btn-toggle-key');
@@ -73,10 +119,8 @@ function setupListeners() {
     btn.textContent = input.type === 'password' ? 'Show' : 'Hide';
   });
 
-  // Test API key
   document.getElementById('btn-test-key').addEventListener('click', handleTestKey);
 
-  // Ranking sliders
   ['weight-visits', 'weight-recency', 'weight-relevance', 'weight-shares'].forEach((id) => {
     document.getElementById(id).addEventListener('input', (e) => {
       document.getElementById(id + '-val').textContent = e.target.value + '%';
@@ -84,35 +128,38 @@ function setupListeners() {
     });
   });
 
-  // Add category
   document.getElementById('btn-add-category').addEventListener('click', addCategory);
 
-  // Sync sign in/out
-  document.getElementById('btn-google-signin').addEventListener('click', handleGoogleSignIn);
-  document.getElementById('btn-sign-out').addEventListener('click', handleSignOut);
-  document.getElementById('btn-sync-now').addEventListener('click', handleSyncNow);
+  // Backup & Import
+  document.getElementById('btn-import-existing').addEventListener('click', handleImportExisting);
+  document.getElementById('btn-backup-now').addEventListener('click', handleBackupNow);
+  document.getElementById('btn-open-sheet').addEventListener('click', () => {
+    if (settings.spreadsheetId) {
+      window.open(`https://docs.google.com/spreadsheets/d/${settings.spreadsheetId}`, '_blank');
+    }
+  });
 
-  // Export
+  // Export / Import files
+  document.getElementById('btn-export-csv').addEventListener('click', exportCsv);
   document.getElementById('btn-export-json').addEventListener('click', exportJson);
   document.getElementById('btn-export-html').addEventListener('click', exportHtml);
-
-  // Import
   document.getElementById('btn-import').addEventListener('click', () => {
     document.getElementById('import-file').click();
   });
-  document.getElementById('import-file').addEventListener('change', handleImport);
+  document.getElementById('import-file').addEventListener('change', handleImportFile);
 
   // Danger zone
   document.getElementById('btn-clear-ai-data').addEventListener('click', handleClearAiData);
   document.getElementById('btn-reset-all').addEventListener('click', handleResetAll);
 
-  // Save
   document.getElementById('btn-save').addEventListener('click', handleSave);
 }
 
 // ─── API Key Testing ──────────────────────────────────────────────────────────
 
 async function handleTestKey() {
+  const provider = document.getElementById('provider-select').value;
+  const model = document.getElementById('model-select').value;
   const keyInput = document.getElementById('api-key').value.trim();
   const statusEl = document.getElementById('api-key-status');
   const btn = document.getElementById('btn-test-key');
@@ -121,8 +168,8 @@ async function handleTestKey() {
     showStatus(statusEl, 'Enter an API key first.', 'error');
     return;
   }
-  if (!isValidApiKey(keyInput)) {
-    showStatus(statusEl, 'Key should start with "sk-ant-"', 'error');
+  if (!isValidApiKey(keyInput, provider)) {
+    showStatus(statusEl, `Key should start with "${KEY_PREFIXES[provider]}"`, 'error');
     return;
   }
 
@@ -131,8 +178,8 @@ async function handleTestKey() {
   showStatus(statusEl, '', '');
 
   try {
-    await testApiKey(keyInput);
-    showStatus(statusEl, '✓ API key is valid', 'ok');
+    await testApiKey(provider, keyInput, model);
+    showStatus(statusEl, '✓ API key works with this model', 'ok');
   } catch (err) {
     showStatus(statusEl, `✗ ${err.message}`, 'error');
   } finally {
@@ -170,7 +217,7 @@ function addCategory() {
   const name = prompt('Category name:');
   if (!name?.trim()) return;
   settings.categories = settings.categories || [];
-  settings.categories.push({ id: generateId('cat'), name: name.trim(), color: '#4A90E2', icon: 'bookmark' });
+  settings.categories.push({ id: generateId('cat'), name: name.trim(), color: '#6366f1', icon: 'bookmark' });
   renderCategories();
 }
 
@@ -189,125 +236,140 @@ function checkWeightTotal() {
     parseInt(document.getElementById('weight-relevance').value) +
     parseInt(document.getElementById('weight-shares').value);
 
-  const warning = document.getElementById('weight-total-warning');
-  warning.style.display = total !== 100 ? 'block' : 'none';
+  document.getElementById('weight-total-warning').style.display = total !== 100 ? 'block' : 'none';
 }
 
-// ─── Sync ─────────────────────────────────────────────────────────────────────
+// ─── Import Existing Bookmarks ────────────────────────────────────────────────
 
-async function handleGoogleSignIn() {
-  const btn = document.getElementById('btn-google-signin');
+async function handleImportExisting() {
+  const btn = document.getElementById('btn-import-existing');
   btn.disabled = true;
-  btn.textContent = 'Signing in…';
+  btn.textContent = 'Scanning…';
 
   try {
-    const authResult = await chrome.identity.getAuthToken({ interactive: true });
-    const googleToken = authResult.token || authResult;
-
-    const { uid, idToken, refreshToken, expiresAt } = await signInWithGoogle(googleToken);
-
-    settings.firebaseUid = uid;
-    settings.firebaseToken = idToken;
-    settings.firebaseRefreshToken = refreshToken;
-    settings.tokenExpiresAt = expiresAt;
-    settings.syncEnabled = true;
-
-    document.getElementById('enable-sync').checked = true;
-    await saveCurrentSettings();
-    updateSyncStatus();
+    const result = await sendMessage({ action: ACTIONS.IMPORT_EXISTING });
+    document.getElementById('import-progress').classList.remove('hidden');
+    document.getElementById('import-progress-text').textContent =
+      `Found ${result.total} bookmarks, ${result.queued} queued for AI processing.`;
+    pollImportProgress();
   } catch (err) {
-    alert(`Sign in failed: ${err.message}`);
+    alert(`Import failed: ${err.message}`);
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Sign in with Google';
+    btn.textContent = 'Import & Organize Existing Bookmarks';
   }
 }
 
-async function handleSignOut() {
-  if (!confirm('Sign out from sync? Your local bookmarks will be kept.')) return;
-  settings.firebaseUid = null;
-  settings.firebaseToken = null;
-  settings.firebaseRefreshToken = null;
-  settings.tokenExpiresAt = null;
-  settings.syncEnabled = false;
-  await saveCurrentSettings();
-  updateSyncStatus();
-}
+let importPollTimer = null;
 
-async function handleSyncNow() {
-  const btn = document.getElementById('btn-sync-now');
-  btn.disabled = true;
-  btn.textContent = 'Syncing…';
+async function pollImportProgress() {
   try {
-    await sendMessage({ action: ACTIONS.SYNC_NOW });
-    setSaveStatus('Sync complete');
+    const progress = await sendMessage({ action: ACTIONS.GET_IMPORT_PROGRESS });
+    if (!progress || progress.queued === 0) return;
+
+    const wrap = document.getElementById('import-progress');
+    wrap.classList.remove('hidden');
+
+    const pct = Math.min(100, Math.round(((progress.processed || 0) / progress.queued) * 100));
+    document.getElementById('import-progress-fill').style.width = pct + '%';
+    document.getElementById('import-progress-text').textContent = progress.done
+      ? `✓ Done — ${progress.processed}/${progress.queued} bookmarks organized by AI.`
+      : `AI processing: ${progress.processed || 0}/${progress.queued} (${pct}%) — keeps running in the background.`;
+
+    if (!progress.done) {
+      clearTimeout(importPollTimer);
+      importPollTimer = setTimeout(pollImportProgress, 3000);
+    }
+  } catch {
+    // Service worker may be waking up — retry later
+    clearTimeout(importPollTimer);
+    importPollTimer = setTimeout(pollImportProgress, 5000);
+  }
+}
+
+// ─── Google Sheets Backup ─────────────────────────────────────────────────────
+
+async function handleBackupNow() {
+  const btn = document.getElementById('btn-backup-now');
+  const statusEl = document.getElementById('backup-status');
+  btn.disabled = true;
+  btn.textContent = 'Backing up…';
+
+  try {
+    const result = await sendMessage({ action: ACTIONS.BACKUP_TO_SHEETS });
+    if (result.error) throw new Error(result.error);
+    showStatus(statusEl, `✓ ${result.rowCount} bookmarks backed up to Google Sheets`, 'ok');
+    settings = await getSettings();
+    refreshBackupStatus();
   } catch (err) {
-    setSaveStatus(`Sync failed: ${err.message}`);
+    showStatus(statusEl, `✗ ${err.message}`, 'error');
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Sync Now';
+    btn.textContent = 'Backup Now';
   }
 }
 
-function updateSyncStatus() {
-  const icon = document.getElementById('sync-status-icon');
-  const text = document.getElementById('sync-status-text');
-  const signInBtn = document.getElementById('btn-google-signin');
-  const signOutBtn = document.getElementById('btn-sign-out');
-  const syncNowBtn = document.getElementById('btn-sync-now');
+function refreshBackupStatus() {
+  const openBtn = document.getElementById('btn-open-sheet');
+  const statusEl = document.getElementById('backup-status');
 
-  if (settings.firebaseUid) {
-    icon.textContent = '●';
-    icon.style.color = '#28a745';
-    text.textContent = `Connected (${settings.firebaseUid.slice(0, 8)}…)`;
-    signInBtn.classList.add('hidden');
-    signOutBtn.classList.remove('hidden');
-    syncNowBtn.classList.remove('hidden');
-  } else {
-    icon.textContent = '○';
-    icon.style.color = '';
-    text.textContent = 'Not signed in';
-    signInBtn.classList.remove('hidden');
-    signOutBtn.classList.add('hidden');
-    syncNowBtn.classList.add('hidden');
+  if (settings.spreadsheetId) {
+    openBtn.classList.remove('hidden');
+    if (settings.lastBackupTimestamp) {
+      showStatus(statusEl, `Last backup: ${timeAgo(settings.lastBackupTimestamp)}`, '');
+    }
   }
 }
 
-// ─── Export / Import ──────────────────────────────────────────────────────────
+// ─── Export / Import files ────────────────────────────────────────────────────
 
-async function exportJson() {
+async function collectExportRows() {
   const { getBookmarkIndex, getSummary } = await import('../shared/storage-schema.js');
   const index = await getBookmarkIndex();
-  const entries = Object.values(index);
-
-  const withSummaries = await Promise.all(
+  const entries = Object.values(index).sort((a, b) => (b.rankScore || 0) - (a.rankScore || 0));
+  return Promise.all(
     entries.map(async (e) => ({
       ...e,
-      summary: (await getSummary(e.id))?.summary || '',
+      summary: e.summaryRef ? (await getSummary(e.id))?.summary || '' : '',
+      categoryName: settings.categories.find((c) => c.id === e.categoryId)?.name || '',
     }))
   );
+}
 
-  const blob = new Blob([JSON.stringify({ version: 1, bookmarks: withSummaries }, null, 2)], { type: 'application/json' });
-  downloadBlob(blob, `ai-bookmarks-export-${Date.now()}.json`);
+async function exportCsv() {
+  const rows = await collectExportRows();
+  const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const lines = [
+    ['Title', 'URL', 'Category', 'Tags', 'Summary', 'Rank', 'Visits', 'Created'].map(esc).join(','),
+    ...rows.map((r) =>
+      [r.title, r.url, r.categoryName, (r.tags || []).join('; '), r.summary, r.rankScore, r.visitCount,
+        r.createdAt ? new Date(r.createdAt).toISOString().slice(0, 10) : ''].map(esc).join(',')
+    ),
+  ];
+  // BOM so Excel opens Hebrew/Chinese text correctly
+  const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  downloadBlob(blob, `ai-bookmarks-${new Date().toISOString().slice(0, 10)}.csv`);
+}
+
+async function exportJson() {
+  const rows = await collectExportRows();
+  const blob = new Blob([JSON.stringify({ version: 2, bookmarks: rows }, null, 2)], { type: 'application/json' });
+  downloadBlob(blob, `ai-bookmarks-${new Date().toISOString().slice(0, 10)}.json`);
 }
 
 async function exportHtml() {
-  const { getBookmarkIndex } = await import('../shared/storage-schema.js');
-  const index = await getBookmarkIndex();
-  const entries = Object.values(index);
-
+  const rows = await collectExportRows();
   const lines = [
     '<!DOCTYPE NETSCAPE-Bookmark-file-1>',
     '<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">',
     '<TITLE>AI Bookmarks Export</TITLE>',
     '<H1>AI Bookmarks</H1>',
     '<DL><p>',
-    ...entries.map((e) => `  <DT><A HREF="${e.url}" ADD_DATE="${Math.floor((e.createdAt || Date.now()) / 1000)}">${e.title || e.url}</A>`),
+    ...rows.map((e) => `  <DT><A HREF="${e.url}" ADD_DATE="${Math.floor((e.createdAt || Date.now()) / 1000)}">${e.title || e.url}</A>`),
     '</DL><p>',
   ];
-
   const blob = new Blob([lines.join('\n')], { type: 'text/html' });
-  downloadBlob(blob, `ai-bookmarks-export-${Date.now()}.html`);
+  downloadBlob(blob, `ai-bookmarks-${new Date().toISOString().slice(0, 10)}.html`);
 }
 
 function downloadBlob(blob, filename) {
@@ -321,7 +383,7 @@ function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
-async function handleImport(e) {
+async function handleImportFile(e) {
   const file = e.target.files[0];
   if (!file) return;
 
@@ -339,7 +401,7 @@ async function handleImport(e) {
     alert(`Import failed: ${err.message}`);
   }
 
-  e.target.value = ''; // Reset file input
+  e.target.value = '';
 }
 
 // ─── Danger Zone ──────────────────────────────────────────────────────────────
@@ -390,11 +452,10 @@ async function handleSave() {
 }
 
 async function saveCurrentSettings() {
-  // API key: encrypt before saving
   const rawKey = document.getElementById('api-key').value.trim();
-  let encryptedKey = settings.claudeApiKey;
+  let encryptedKey = settings.apiKey;
   if (rawKey) {
-    const currentDecrypted = settings.claudeApiKey ? await decryptApiKey(settings.claudeApiKey) : '';
+    const currentDecrypted = settings.apiKey ? await decryptApiKey(settings.apiKey) : '';
     if (rawKey !== currentDecrypted) {
       encryptedKey = await encryptApiKey(rawKey);
     }
@@ -402,7 +463,6 @@ async function saveCurrentSettings() {
     encryptedKey = '';
   }
 
-  // Ranking weights
   const totalWeight =
     parseInt(document.getElementById('weight-visits').value) +
     parseInt(document.getElementById('weight-recency').value) +
@@ -415,11 +475,13 @@ async function saveCurrentSettings() {
 
   const updated = {
     ...settings,
-    claudeApiKey: encryptedKey,
+    provider: document.getElementById('provider-select').value,
+    model: document.getElementById('model-select').value,
+    apiKey: encryptedKey,
     enableAutoCategories: document.getElementById('enable-categories').checked,
     enableAiSummaries: document.getElementById('enable-summaries').checked,
     rankingEnabled: document.getElementById('enable-ranking').checked,
-    syncEnabled: document.getElementById('enable-sync').checked,
+    sheetsBackupEnabled: document.getElementById('enable-sheets-backup').checked,
     rankWeights: {
       VISIT_COUNT: parseInt(document.getElementById('weight-visits').value) / 100,
       RECENCY: parseInt(document.getElementById('weight-recency').value) / 100,
@@ -447,6 +509,7 @@ function sendMessage(message) {
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage(message, (response) => {
       if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+      else if (response?.error) reject(new Error(response.error));
       else resolve(response);
     });
   });

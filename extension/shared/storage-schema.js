@@ -47,14 +47,15 @@ import {
 
 /**
  * @typedef {Object} Settings
- * @property {string} claudeApiKey      - Encrypted
+ * @property {'openrouter'|'anthropic'} provider
+ * @property {string} model             - Model ID at the chosen provider
+ * @property {string} apiKey            - Encrypted (AES-GCM)
  * @property {boolean} enableAutoCategories
  * @property {boolean} enableAiSummaries
  * @property {boolean} rankingEnabled
- * @property {boolean} syncEnabled
- * @property {string|null} firebaseUid
- * @property {string|null} firebaseToken
- * @property {number} lastSyncTimestamp
+ * @property {boolean} sheetsBackupEnabled
+ * @property {string|null} spreadsheetId - Google Sheets backup target
+ * @property {number} lastBackupTimestamp
  * @property {Category[]} categories
  * @property {Object} rankWeights
  */

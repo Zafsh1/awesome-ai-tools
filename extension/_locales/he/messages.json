@@ -95,13 +95,124 @@
   "tabRanking": {
     "message": "דירוג"
   },
-  "tabSync": {
-    "message": "סנכרון"
-  },
   "tabData": {
     "message": "נתונים"
   },
   "saveSettings": {
     "message": "שמור הגדרות"
+  },
+  "tabBackup": {
+    "message": "גיבוי וייבוא"
+  },
+  "freeKeyGuideTitle": {
+    "message": "🎁 השג מפתח AI חינמי תוך 2 דקות"
+  },
+  "freeKeyStep1": {
+    "message": "היכנס עם חשבון Google בכתובת"
+  },
+  "freeKeyStep2": {
+    "message": "לחץ \"Create Key\" והעתק את המפתח (מתחיל ב-sk-or-)"
+  },
+  "freeKeyStep3": {
+    "message": "הדבק אותו למטה ובחר מודל חינמי — זהו, $0 לחודש"
+  },
+  "providerLabel": {
+    "message": "ספק AI"
+  },
+  "modelLabel": {
+    "message": "מודל AI"
+  },
+  "modelDesc": {
+    "message": "המודלים החינמיים לא עולים כלום ומספיקים בהחלט לארגון סימניות."
+  },
+  "apiKeyLabel": {
+    "message": "מפתח API"
+  },
+  "testKey": {
+    "message": "בדיקה"
+  },
+  "aiFeaturesLabel": {
+    "message": "יכולות AI"
+  },
+  "featAutoCategories": {
+    "message": "סיווג אוטומטי של סימניות לתיקיות"
+  },
+  "featSummaries": {
+    "message": "יצירת תקצירי AI לסימניות"
+  },
+  "categoriesDesc": {
+    "message": "ה-AI ישייך סימניות לקטגוריות האלה."
+  },
+  "addCategory": {
+    "message": "+ הוסף קטגוריה"
+  },
+  "rankingDesc": {
+    "message": "כוונן איך סימניות מדורגות בחלונית. המשקלים חייבים להסתכם ל-100%."
+  },
+  "enableRanking": {
+    "message": "הפעל דירוג חכם"
+  },
+  "weightVisits": {
+    "message": "תדירות ביקורים"
+  },
+  "weightRecency": {
+    "message": "עדכניות"
+  },
+  "weightRelevance": {
+    "message": "רלוונטיות AI"
+  },
+  "weightShares": {
+    "message": "פופולריות שיתוף"
+  },
+  "weightWarning": {
+    "message": "המשקלים חייבים להסתכם ל-100%"
+  },
+  "importTitle": {
+    "message": "📥 ייבוא הסימניות הקיימות שלך"
+  },
+  "importDesc": {
+    "message": "סורק את כל הסימניות הקיימות ב-Chrome ונותן ל-AI לארגן, לתקצר ולדרג כל אחת מהן. רץ ברקע."
+  },
+  "importButton": {
+    "message": "ייבא וארגן סימניות קיימות"
+  },
+  "sheetsTitle": {
+    "message": "📊 גיבוי ל-Google Sheets"
+  },
+  "sheetsDesc": {
+    "message": "מגבה את כל הסימניות (כולל תקצירי AI, קטגוריות, תגיות ודירוגים) לגיליון בגוגל דרייב שלך. פתח באקסל/Sheets מתי שתרצה — שקיפות מלאה, אפס שרתים."
+  },
+  "sheetsAutoBackup": {
+    "message": "גיבוי אוטומטי יומי + אחרי עיבוד AI"
+  },
+  "backupNow": {
+    "message": "גבה עכשיו"
+  },
+  "openSheet": {
+    "message": "פתח את הגיליון"
+  },
+  "exportTitle": {
+    "message": "ייצוא"
+  },
+  "exportDesc": {
+    "message": "הורד את כל הסימניות שלך עם נתוני ה-AI."
+  },
+  "importJsonTitle": {
+    "message": "ייבוא מקובץ"
+  },
+  "importJsonDesc": {
+    "message": "ייבוא סימניות מקובץ JSON (שיוצא בעבר מסימניות AI)."
+  },
+  "dangerTitle": {
+    "message": "אזור מסוכן"
+  },
+  "dangerDesc": {
+    "message": "פעולות אלה אינן הפיכות."
+  },
+  "clearAiData": {
+    "message": "נקה נתוני AI"
+  },
+  "resetAll": {
+    "message": "אפס הכול"
   }
 }

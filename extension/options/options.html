@@ -9,18 +9,19 @@
 <body>
   <div class="page">
     <header class="page-header">
-      <img src="../icons/icon-48.png" alt="" width="32" height="32">
+      <img src="../icons/icon-48.png" alt="" width="36" height="36">
       <div>
         <h1 data-i18n="optionsTitle">AI Bookmarks Settings</h1>
         <p class="subtitle" data-i18n="optionsSubtitle">Configure your AI-powered bookmark manager</p>
       </div>
+      <button id="btn-theme" class="icon-btn theme-toggle" title="Theme" aria-label="Toggle theme">◐</button>
     </header>
 
     <nav class="tabs" role="tablist">
       <button class="tab active" data-tab="ai" role="tab" data-i18n="tabAi">AI Configuration</button>
       <button class="tab" data-tab="categories" role="tab" data-i18n="tabCategories">Categories</button>
       <button class="tab" data-tab="ranking" role="tab" data-i18n="tabRanking">Ranking</button>
-      <button class="tab" data-tab="sync" role="tab" data-i18n="tabSync">Sync</button>
+      <button class="tab" data-tab="backup" role="tab" data-i18n="tabBackup">Backup &amp; Import</button>
       <button class="tab" data-tab="data" role="tab" data-i18n="tabData">Data</button>
     </nav>
 
@@ -28,138 +29,155 @@
 
       <!-- AI Configuration -->
       <section id="tab-ai" class="section active">
-        <h2>AI Configuration</h2>
+        <h2 data-i18n="tabAi">AI Configuration</h2>
+
+        <div class="guide-box">
+          <div class="guide-title" data-i18n="freeKeyGuideTitle">🎁 Get a FREE AI key in 2 minutes</div>
+          <ol class="guide-steps">
+            <li><span data-i18n="freeKeyStep1">Sign in with Google at</span> <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">openrouter.ai/keys</a></li>
+            <li data-i18n="freeKeyStep2">Click "Create Key" and copy the key (starts with sk-or-)</li>
+            <li data-i18n="freeKeyStep3">Paste it below and pick a FREE model — done, $0/month</li>
+          </ol>
+        </div>
 
         <div class="field-group">
-          <label for="api-key" class="field-label">Claude API Key <span class="required">*</span></label>
-          <p class="field-desc">Get your key from <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a></p>
+          <label for="provider-select" class="field-label" data-i18n="providerLabel">AI Provider</label>
+          <select id="provider-select" class="select-input">
+            <option value="openrouter">OpenRouter — one key, free models available (recommended)</option>
+            <option value="anthropic">Anthropic direct — Claude API (paid)</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <label for="model-select" class="field-label" data-i18n="modelLabel">AI Model</label>
+          <select id="model-select" class="select-input"></select>
+          <p class="field-desc" data-i18n="modelDesc">FREE models cost nothing and are plenty good for bookmark organization.</p>
+        </div>
+
+        <div class="field-group">
+          <label for="api-key" class="field-label" data-i18n="apiKeyLabel">API Key <span class="required">*</span></label>
           <div class="input-row">
-            <input type="password" id="api-key" class="text-input" placeholder="sk-ant-..." autocomplete="off">
+            <input type="password" id="api-key" class="text-input" placeholder="sk-or-..." autocomplete="off">
             <button id="btn-toggle-key" class="btn btn-secondary">Show</button>
-            <button id="btn-test-key" class="btn btn-primary">Test</button>
+            <button id="btn-test-key" class="btn btn-primary" data-i18n="testKey">Test</button>
           </div>
           <p id="api-key-status" class="status-msg"></p>
         </div>
 
         <div class="field-group">
-          <label class="field-label">AI Features</label>
+          <label class="field-label" data-i18n="aiFeaturesLabel">AI Features</label>
           <label class="checkbox-label">
             <input type="checkbox" id="enable-categories">
-            Auto-categorize bookmarks into folders
+            <span data-i18n="featAutoCategories">Auto-categorize bookmarks into folders</span>
           </label>
           <label class="checkbox-label">
             <input type="checkbox" id="enable-summaries">
-            Generate AI summaries for bookmarks
+            <span data-i18n="featSummaries">Generate AI summaries for bookmarks</span>
           </label>
-        </div>
-
-        <div class="field-group">
-          <label class="field-label">AI Model</label>
-          <select id="model-select" class="select-input">
-            <option value="claude-sonnet-4-6">Claude Sonnet 4.6 (Recommended)</option>
-            <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (Faster, cheaper)</option>
-            <option value="claude-opus-4-6">Claude Opus 4.6 (Most capable)</option>
-          </select>
         </div>
       </section>
 
       <!-- Categories -->
       <section id="tab-categories" class="section">
-        <h2>Categories</h2>
-        <p class="section-desc">AI will assign bookmarks to these categories. Drag to reorder.</p>
+        <h2 data-i18n="tabCategories">Categories</h2>
+        <p class="section-desc" data-i18n="categoriesDesc">AI will assign bookmarks to these categories.</p>
         <div id="categories-list" class="categories-list"></div>
-        <button id="btn-add-category" class="btn btn-secondary" style="margin-top:12px">+ Add Category</button>
+        <button id="btn-add-category" class="btn btn-secondary" style="margin-top:12px" data-i18n="addCategory">+ Add Category</button>
       </section>
 
       <!-- Ranking -->
       <section id="tab-ranking" class="section">
-        <h2>Smart Ranking</h2>
-        <p class="section-desc">Adjust how bookmarks are ranked in the popup. Weights must sum to 1.0.</p>
+        <h2 data-i18n="tabRanking">Smart Ranking</h2>
+        <p class="section-desc" data-i18n="rankingDesc">Adjust how bookmarks are ranked in the popup. Weights must sum to 100%.</p>
 
         <div class="field-group">
           <label class="checkbox-label">
             <input type="checkbox" id="enable-ranking">
-            Enable smart ranking
+            <span data-i18n="enableRanking">Enable smart ranking</span>
           </label>
         </div>
 
         <div id="ranking-weights">
           <div class="slider-row">
-            <label>Visit frequency</label>
+            <label data-i18n="weightVisits">Visit frequency</label>
             <input type="range" id="weight-visits" min="0" max="100" step="5" class="slider">
             <span id="weight-visits-val" class="slider-val">40%</span>
           </div>
           <div class="slider-row">
-            <label>Recency</label>
+            <label data-i18n="weightRecency">Recency</label>
             <input type="range" id="weight-recency" min="0" max="100" step="5" class="slider">
             <span id="weight-recency-val" class="slider-val">30%</span>
           </div>
           <div class="slider-row">
-            <label>AI relevance</label>
+            <label data-i18n="weightRelevance">AI relevance</label>
             <input type="range" id="weight-relevance" min="0" max="100" step="5" class="slider">
             <span id="weight-relevance-val" class="slider-val">20%</span>
           </div>
           <div class="slider-row">
-            <label>Share popularity</label>
+            <label data-i18n="weightShares">Share popularity</label>
             <input type="range" id="weight-shares" min="0" max="100" step="5" class="slider">
             <span id="weight-shares-val" class="slider-val">10%</span>
           </div>
-          <p id="weight-total-warning" class="status-msg status-warning" style="display:none">Weights must sum to 100%</p>
+          <p id="weight-total-warning" class="status-msg status-warning" style="display:none" data-i18n="weightWarning">Weights must sum to 100%</p>
         </div>
       </section>
 
-      <!-- Sync -->
-      <section id="tab-sync" class="section">
-        <h2>Cross-Browser Sync</h2>
-        <p class="section-desc">
-          <strong>Chrome ↔ Chrome/Edge</strong> sync is automatic via your Google account.<br>
-          <strong>Chrome ↔ Firefox</strong> sync requires Firebase (sign in below).
-        </p>
+      <!-- Backup & Import -->
+      <section id="tab-backup" class="section">
+        <h2 data-i18n="tabBackup">Backup &amp; Import</h2>
 
-        <div class="field-group">
-          <label class="checkbox-label">
-            <input type="checkbox" id="enable-sync">
-            Enable Firebase sync (Chrome ↔ Firefox)
-          </label>
+        <div class="field-group card-group">
+          <h3 data-i18n="importTitle">📥 Import your existing bookmarks</h3>
+          <p class="field-desc" data-i18n="importDesc">Scans ALL your current Chrome bookmarks and lets the AI organize, summarize, and rank every one of them. Runs in the background.</p>
+          <button id="btn-import-existing" class="btn btn-primary" data-i18n="importButton">Import &amp; Organize Existing Bookmarks</button>
+          <div id="import-progress" class="progress-wrap hidden">
+            <div class="progress-bar"><div id="import-progress-fill" class="progress-fill"></div></div>
+            <p id="import-progress-text" class="field-desc"></p>
+          </div>
         </div>
 
-        <div id="sync-auth-section" class="field-group">
-          <div id="sync-status" class="sync-status">
-            <span id="sync-status-icon">○</span>
-            <span id="sync-status-text">Not signed in</span>
+        <div class="field-group card-group">
+          <h3 data-i18n="sheetsTitle">📊 Google Sheets backup</h3>
+          <p class="field-desc" data-i18n="sheetsDesc">Backs up all bookmarks (with AI summaries, categories, tags &amp; rankings) to a spreadsheet in YOUR Google Drive. Open it in Excel/Sheets anytime — full transparency, zero servers.</p>
+          <label class="checkbox-label">
+            <input type="checkbox" id="enable-sheets-backup">
+            <span data-i18n="sheetsAutoBackup">Auto-backup daily + after AI processing</span>
+          </label>
+          <div class="btn-row">
+            <button id="btn-backup-now" class="btn btn-primary" data-i18n="backupNow">Backup Now</button>
+            <button id="btn-open-sheet" class="btn btn-secondary hidden" data-i18n="openSheet">Open Spreadsheet</button>
           </div>
-          <button id="btn-google-signin" class="btn btn-primary">Sign in with Google</button>
-          <button id="btn-sign-out" class="btn btn-secondary hidden">Sign out</button>
-          <button id="btn-sync-now" class="btn btn-secondary hidden">Sync Now</button>
+          <p id="backup-status" class="status-msg"></p>
         </div>
       </section>
 
       <!-- Data -->
       <section id="tab-data" class="section">
-        <h2>Data Management</h2>
+        <h2 data-i18n="tabData">Data Management</h2>
 
         <div class="field-group">
-          <h3>Export</h3>
-          <p class="field-desc">Download all your bookmarks with AI metadata.</p>
+          <h3 data-i18n="exportTitle">Export</h3>
+          <p class="field-desc" data-i18n="exportDesc">Download all your bookmarks with AI metadata.</p>
           <div class="btn-row">
-            <button id="btn-export-json" class="btn btn-secondary">Export as JSON</button>
-            <button id="btn-export-html" class="btn btn-secondary">Export as HTML (Netscape)</button>
+            <button id="btn-export-csv" class="btn btn-secondary">Export CSV (Excel)</button>
+            <button id="btn-export-json" class="btn btn-secondary">Export JSON</button>
+            <button id="btn-export-html" class="btn btn-secondary">Export HTML</button>
           </div>
         </div>
 
         <div class="field-group">
-          <h3>Import</h3>
-          <p class="field-desc">Import bookmarks from a JSON file (previously exported from AI Bookmarks).</p>
+          <h3 data-i18n="importJsonTitle">Import from file</h3>
+          <p class="field-desc" data-i18n="importJsonDesc">Import bookmarks from a JSON file (previously exported from AI Bookmarks).</p>
           <input type="file" id="import-file" accept=".json" class="file-input">
           <button id="btn-import" class="btn btn-secondary">Import JSON</button>
         </div>
 
         <div class="field-group danger-zone">
-          <h3>Danger Zone</h3>
-          <p class="field-desc">These actions cannot be undone.</p>
+          <h3 data-i18n="dangerTitle">Danger Zone</h3>
+          <p class="field-desc" data-i18n="dangerDesc">These actions cannot be undone.</p>
           <div class="btn-row">
-            <button id="btn-clear-ai-data" class="btn btn-danger">Clear AI Data</button>
-            <button id="btn-reset-all" class="btn btn-danger">Reset Everything</button>
+            <button id="btn-clear-ai-data" class="btn btn-danger" data-i18n="clearAiData">Clear AI Data</button>
+            <button id="btn-reset-all" class="btn btn-danger" data-i18n="resetAll">Reset Everything</button>
           </div>
         </div>
       </section>

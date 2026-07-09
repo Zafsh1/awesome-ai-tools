@@ -23,6 +23,7 @@ let state = {
 
 async function init() {
   localizeDocument();
+  applyTheme(localStorage.getItem('theme') || 'auto');
   showLoading(true);
 
   try {
@@ -132,6 +133,15 @@ function setupListeners() {
     window.close();
   });
 
+  // Theme toggle: auto → dark → light → auto
+  document.getElementById('btn-theme').addEventListener('click', () => {
+    const order = ['auto', 'dark', 'light'];
+    const current = localStorage.getItem('theme') || 'auto';
+    const next = order[(order.indexOf(current) + 1) % order.length];
+    localStorage.setItem('theme', next);
+    applyTheme(next);
+  });
+
   // Share button
   document.getElementById('btn-share').addEventListener('click', () => {
     const visibleEntries = getFilteredBookmarks();
@@ -167,7 +177,7 @@ async function handleRetry(entry) {
 
 function checkApiKey() {
   const banner = document.getElementById('no-api-key-banner');
-  if (!state.settings.claudeApiKey) {
+  if (!state.settings.apiKey) {
     banner.classList.remove('hidden');
   } else {
     banner.classList.add('hidden');
@@ -175,6 +185,18 @@ function checkApiKey() {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function applyTheme(theme) {
+  const root = document.documentElement;
+  if (theme === 'auto') {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    root.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+  } else {
+    root.setAttribute('data-theme', theme);
+  }
+  const btn = document.getElementById('btn-theme');
+  if (btn) btn.textContent = theme === 'dark' ? '🌙' : theme === 'light' ? '☀️' : '◐';
+}
 
 function showLoading(show) {
   document.getElementById('loading-state').classList.toggle('hidden', !show);
