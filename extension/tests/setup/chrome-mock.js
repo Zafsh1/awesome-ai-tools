@@ -42,7 +42,19 @@ export function installChromeMock() {
       lastError: null,
       sendMessage: async () => {},
       onMessage: { addListener() {} },
+      onInstalled: { addListener() {} },
       openOptionsPage: () => {},
+    },
+    contextMenus: {
+      create: () => {},
+      removeAll: (cb) => cb && cb(),
+      onClicked: { addListener() {} },
+    },
+    scripting: {
+      executeScript: async () => [{ result: null }],
+    },
+    identity: {
+      getAuthToken: async () => ({ token: 'mock-token' }),
     },
     i18n: {
       getMessage: () => '',
@@ -69,12 +81,16 @@ export function installChromeMock() {
         if (this._nodes[id]) this._nodes[id].parentId = parentId;
         return this._nodes[id] ? structuredClone(this._nodes[id]) : { id, parentId };
       },
+      onCreated: { addListener() {} },
+      onRemoved: { addListener() {} },
+      onChanged: { addListener() {} },
     },
     tabs: {
       async query() {
         return [];
       },
       create: () => {},
+      onUpdated: { addListener() {} },
     },
     alarms: {
       create: () => {},

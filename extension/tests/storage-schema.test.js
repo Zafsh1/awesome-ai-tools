@@ -53,18 +53,24 @@ describe('settings', () => {
   });
 
   test('saveSettings persists and getSettings merges over defaults', async () => {
-    await saveSettings({ apiKey: 'encrypted-blob' });
+    await saveSettings({ openrouterApiKey: 'encrypted-blob' });
     const s = await getSettings();
-    assert.equal(s.apiKey, 'encrypted-blob');
+    assert.equal(s.openrouterApiKey, 'encrypted-blob');
     assert.equal(s.enableAiSummaries, true); // default preserved
     assert.equal(s.provider, 'openrouter'); // default provider
   });
 
   test('updateSettings merges partial updates', async () => {
-    await saveSettings({ apiKey: 'k1', sheetsBackupEnabled: false });
-    const updated = await updateSettings({ sheetsBackupEnabled: true });
-    assert.equal(updated.sheetsBackupEnabled, true);
-    assert.equal(updated.apiKey, 'k1');
+    await saveSettings({ openrouterApiKey: 'k1', selectedModel: 'm1' });
+    const updated = await updateSettings({ selectedModel: 'm2' });
+    assert.equal(updated.selectedModel, 'm2');
+    assert.equal(updated.openrouterApiKey, 'k1');
+  });
+
+  test('v1→v2 migration: a stored claudeApiKey without provider selects Anthropic', async () => {
+    await saveSettings({ claudeApiKey: 'legacy-key' });
+    const s = await getSettings();
+    assert.equal(s.provider, 'anthropic');
   });
 });
 

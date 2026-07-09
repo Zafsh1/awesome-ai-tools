@@ -177,11 +177,9 @@ async function handleRetry(entry) {
 
 function checkApiKey() {
   const banner = document.getElementById('no-api-key-banner');
-  if (!state.settings.apiKey) {
-    banner.classList.remove('hidden');
-  } else {
-    banner.classList.add('hidden');
-  }
+  const s = state.settings || {};
+  const hasKey = s.provider === 'anthropic' ? Boolean(s.claudeApiKey) : Boolean(s.openrouterApiKey);
+  banner.classList.toggle('hidden', hasKey);
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -215,30 +213,4 @@ function sendMessage(message) {
 // ─── Start ────────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', init);
-
-// Theme management
-function initTheme() {
-  const saved = localStorage.getItem('ai-bookmarks-theme');
-  if (saved) {
-    document.documentElement.setAttribute('data-theme', saved);
-    return;
-  }
-  if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    document.documentElement.setAttribute('data-theme', 'dark');
-  }
-}
-
-function toggleTheme() {
-  const current = document.documentElement.getAttribute('data-theme');
-  const next = current === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', next);
-  localStorage.setItem('ai-bookmarks-theme', next);
-}
-
-// Init theme on load
-initTheme();
-document.addEventListener('DOMContentLoaded', () => {
-  const btn = document.getElementById('btn-theme');
-  if (btn) btn.addEventListener('click', toggleTheme);
-});
 

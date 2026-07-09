@@ -5,23 +5,12 @@ import { enrichBookmark } from '../background/ai-client.js';
 import { saveSettings } from '../shared/storage-schema.js';
 import { encryptApiKey } from '../shared/utils.js';
 import { ERROR_CODES } from '../shared/error-handler.js';
-import { PROVIDERS } from '../shared/constants.js';
+
+// ai-client.js is the Anthropic (Claude) provider. It reads settings.claudeApiKey
+// and uses the Messages API schema (content[0].text).
 
 const originalFetch = globalThis.fetch;
 
-// OpenRouter uses the OpenAI-style response schema
-function openRouterResponse(text) {
-  return {
-    ok: true,
-    status: 200,
-    json: async () => ({
-      model: 'google/gemini-2.0-flash-exp:free',
-      choices: [{ message: { role: 'assistant', content: text } }],
-    }),
-  };
-}
-
-// Anthropic uses the Messages API schema
 function anthropicResponse(text) {
   return {
     ok: true,
@@ -33,9 +22,9 @@ function anthropicResponse(text) {
   };
 }
 
-async function setupProvider(provider, key, model) {
-  const encrypted = await encryptApiKey(key);
-  await saveSettings({ provider, model, apiKey: encrypted });
+async function setupClaudeKey(model = 'claude-sonnet-4-6') {
+  const encrypted = await encryptApiKey('sk-ant-test-key');
+  await saveSettings({ provider: 'anthropic', claudeApiKey: encrypted, selectedModel: model });
 }
 
 const PARAMS = {
@@ -50,16 +39,16 @@ const GOOD_JSON = '{"summary":"A page about JS testing.","category":"Technology"
 
 beforeEach(async () => {
   resetChromeMock();
-  await setupProvider(PROVIDERS.OPENROUTER, 'sk-or-test-key', 'google/gemini-2.0-flash-exp:free');
+  await setupClaudeKey();
 });
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
 });
 
-describe('enrichBookmark via OpenRouter (default)', () => {
+describe('ai-client (Anthropic provider)', () => {
   test('parses a clean JSON response', async () => {
-    globalThis.fetch = async () => openRouterResponse(GOOD_JSON);
+    globalThis.fetch = async () => anthropicResponse(GOOD_JSON);
 
     const result = await enrichBookmark(PARAMS);
     assert.equal(result.summary, 'A page about JS testing.');
@@ -67,26 +56,37 @@ describe('enrichBookmark via OpenRouter (default)', () => {
     assert.deepEqual(result.tags, ['javascript', 'testing']);
   });
 
-  test('sends Bearer auth, model, and prompt to the OpenRouter endpoint', async () => {
+  test('uses the Anthropic endpoint, X-API-Key header, and system field', async () => {
     let captured;
     globalThis.fetch = async (url, init) => {
       captured = { url, init };
-      return openRouterResponse(GOOD_JSON);
+      return anthropicResponse(GOOD_JSON);
     };
 
     await enrichBookmark(PARAMS);
-    assert.ok(captured.url.startsWith('https://openrouter.ai/'));
-    assert.equal(captured.init.headers.Authorization, 'Bearer sk-or-test-key');
+    assert.ok(captured.url.startsWith('https://api.anthropic.com/'));
+    assert.equal(captured.init.headers['X-API-Key'], 'sk-ant-test-key');
     const body = JSON.parse(captured.init.body);
-    assert.equal(body.model, 'google/gemini-2.0-flash-exp:free');
-    assert.equal(body.messages[0].role, 'system');
-    assert.ok(body.messages[1].content.includes('https://example.com'));
-    assert.ok(body.messages[1].content.includes('Technology'), 'existing categories included in prompt');
+    assert.equal(body.model, 'claude-sonnet-4-6');
+    assert.ok(body.system, 'system prompt sent as a top-level field');
+    assert.ok(body.messages[0].content.includes('https://example.com'));
+    assert.ok(body.messages[0].content.includes('Technology'), 'existing categories included in prompt');
+  });
+
+  test('falls back to the default Claude model when selectedModel is an OpenRouter id', async () => {
+    await setupClaudeKey('google/gemini-2.0-flash-exp:free'); // not a claude id
+    let captured;
+    globalThis.fetch = async (url, init) => {
+      captured = init;
+      return anthropicResponse(GOOD_JSON);
+    };
+    await enrichBookmark(PARAMS);
+    assert.equal(JSON.parse(captured.body).model, 'claude-sonnet-4-6');
   });
 
   test('strips markdown code fences around the JSON', async () => {
     globalThis.fetch = async () =>
-      openRouterResponse('```json\n{"summary":"s","category":"C","tags":[],"isNewCategory":true,"categoryColor":"#123456"}\n```');
+      anthropicResponse('```json\n{"summary":"s","category":"C","tags":[],"isNewCategory":true,"categoryColor":"#123456"}\n```');
 
     const result = await enrichBookmark(PARAMS);
     assert.equal(result.category, 'C');
@@ -95,7 +95,7 @@ describe('enrichBookmark via OpenRouter (default)', () => {
 
   test('extracts a JSON object embedded in surrounding prose', async () => {
     globalThis.fetch = async () =>
-      openRouterResponse('Here is the analysis: {"summary":"s","category":"News","tags":["x"],"isNewCategory":false} hope that helps');
+      anthropicResponse('Here is the analysis: {"summary":"s","category":"News","tags":["x"],"isNewCategory":false} hope that helps');
 
     const result = await enrichBookmark(PARAMS);
     assert.equal(result.category, 'News');
@@ -116,10 +116,8 @@ describe('enrichBookmark via OpenRouter (default)', () => {
     let calls = 0;
     globalThis.fetch = async () => {
       calls++;
-      if (calls === 1) {
-        return { ok: false, status: 500, statusText: 'ISE', json: async () => ({}) };
-      }
-      return openRouterResponse('{"summary":"recovered","category":"C","tags":[],"isNewCategory":false}');
+      if (calls === 1) return { ok: false, status: 500, statusText: 'ISE', json: async () => ({}) };
+      return anthropicResponse('{"summary":"recovered","category":"C","tags":[],"isNewCategory":false}');
     };
 
     const result = await enrichBookmark(PARAMS);
@@ -127,38 +125,16 @@ describe('enrichBookmark via OpenRouter (default)', () => {
     assert.equal(calls, 2);
   });
 
-  test('throws API_NO_KEY when no key is configured', async () => {
+  test('throws API_NO_KEY when no Claude key is configured', async () => {
     resetChromeMock(); // wipes stored settings
     await assert.rejects(() => enrichBookmark(PARAMS), (err) => err.code === ERROR_CODES.API_NO_KEY);
   });
 
   test('defaults missing fields in a sparse response', async () => {
-    globalThis.fetch = async () => openRouterResponse('{"summary":"only summary"}');
+    globalThis.fetch = async () => anthropicResponse('{"summary":"only summary"}');
     const result = await enrichBookmark(PARAMS);
     assert.equal(result.category, 'Uncategorized');
     assert.deepEqual(result.tags, []);
     assert.equal(result.isNewCategory, false);
-  });
-});
-
-describe('enrichBookmark via Anthropic direct', () => {
-  beforeEach(async () => {
-    await setupProvider(PROVIDERS.ANTHROPIC, 'sk-ant-test-key', 'claude-sonnet-4-6');
-  });
-
-  test('uses the Anthropic endpoint, header, and response schema', async () => {
-    let captured;
-    globalThis.fetch = async (url, init) => {
-      captured = { url, init };
-      return anthropicResponse(GOOD_JSON);
-    };
-
-    const result = await enrichBookmark(PARAMS);
-    assert.ok(captured.url.startsWith('https://api.anthropic.com/'));
-    assert.equal(captured.init.headers['X-API-Key'], 'sk-ant-test-key');
-    const body = JSON.parse(captured.init.body);
-    assert.equal(body.model, 'claude-sonnet-4-6');
-    assert.ok(body.system, 'system prompt sent as top-level field');
-    assert.equal(result.category, 'Technology');
   });
 });

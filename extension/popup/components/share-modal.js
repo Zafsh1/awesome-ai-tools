@@ -63,24 +63,11 @@ async function handleShare() {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 
-    const result = await sendMessage({
-      action: ACTIONS.SHARE_COLLECTION,
-      payload: { name, description, visibility, bookmarks: bookmarksPayload },
-    });
-
-    if (result.shareUrl) {
-      document.getElementById('share-link-input').value = result.shareUrl;
-      document.getElementById('share-result').classList.remove('hidden');
-    } else {
-      alert(result?.error || 'Sharing is not available in this version.');
-      closeModal();
-    }
-  } catch (err) {
-    alert(`Share failed: ${err.message}`);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = t('share') || 'Share';
-  }
+  // Zero-backend sharing: the HTML file is downloaded above; also surface the
+  // "copy as markdown" affordance so the user can paste the list anywhere.
+  const input = document.getElementById('share-link-input');
+  if (input) input.value = `${name} — ${_currentEntries.length} bookmarks (HTML downloaded)`;
+  document.getElementById('share-result').classList.remove('hidden');
 }
 
 function closeModal() {

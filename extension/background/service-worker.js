@@ -180,15 +180,9 @@ async function handleMessage(message) {
       return { ok: true };
     }
 
-    case ACTIONS.SHARE_COLLECTION:
-    case ACTIONS.SYNC_NOW: {
-      // Firebase sync/sharing was removed in v2 (Google Sheets sync coming later)
-      return { error: 'Sync and sharing are not available in this version.' };
-    }
-
-        case ACTIONS.IMPORT_START: {
-      const { startImport, getImportState } = await import('./importer.js');
-      startImport(payload).catch(err => logError('import', err));
+    case ACTIONS.IMPORT_START: {
+      const { startImport } = await import('./importer.js');
+      startImport(payload).catch((err) => logError('import', err));
       return { ok: true };
     }
 
@@ -196,6 +190,11 @@ async function handleMessage(message) {
       const { cancelImport } = await import('./importer.js');
       cancelImport();
       return { ok: true };
+    }
+
+    case ACTIONS.GET_IMPORT_STATE: {
+      const { getImportState } = await import('./importer.js');
+      return getImportState();
     }
 
     case ACTIONS.GOOGLE_SHEETS_CONNECT: {
@@ -208,44 +207,19 @@ async function handleMessage(message) {
       return checkConnection();
     }
 
+    case ACTIONS.BACKUP_NOW: {
+      return backupAllBookmarks(true);
+    }
+
     case ACTIONS.EXPORT_TO_DRIVE: {
       const { exportToDrive } = await import('./sheets-backup.js');
       return exportToDrive(true);
-    }
-
-    case ACTIONS.GET_IMPORT_STATE: {
-      const { getImportState } = await import('./importer.js');
-      return getImportState();
     }
 
     case ACTIONS.DELETE_BOOKMARK: {
       const { deleteBookmark } = await import('../shared/storage-schema.js');
       await deleteBookmark(payload.bookmarkId);
       return { ok: true };
-    }
-
-    case ACTIONS.IMPORT_EXISTING: {
-      const { importExistingBookmarks } = await import('./importer.js');
-      return importExistingBookmarks();
-    }
-
-    case ACTIONS.GET_IMPORT_PROGRESS: {
-      const { getImportProgress } = await import('./importer.js');
-      return getImportProgress();
-    }
-
-    case ACTIONS.BACKUP_TO_SHEETS: {
-      const { backupAllBookmarks } = await import('./sheets-client.js');
-      return backupAllBookmarks(true);
-    }
-
-    case ACTIONS.GET_BACKUP_STATUS: {
-      const settings = await getSettings();
-      return {
-        enabled: settings.sheetsBackupEnabled,
-        spreadsheetId: settings.spreadsheetId,
-        lastBackup: settings.lastBackupTimestamp,
-      };
     }
 
     default:

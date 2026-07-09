@@ -18,8 +18,7 @@ async function init() {
   setupTabs();
   setupListeners();
   renderCategories();
-  refreshBackupStatus();
-  pollImportProgress();
+  updateSheetsStatus();
 }
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
@@ -32,7 +31,7 @@ function applyTheme(theme) {
   } else {
     root.setAttribute('data-theme', theme);
   }
-  const btn = document.getElementById('btn-theme');
+  const btn = document.getElementById('btn-theme-toggle');
   if (btn) btn.textContent = theme === 'dark' ? '🌙' : theme === 'light' ? '☀️' : '◐';
 }
 
@@ -95,6 +94,15 @@ function setupTabs() {
 // ─── Event Listeners ──────────────────────────────────────────────────────────
 
 function setupListeners() {
+  // Theme toggle: auto → dark → light → auto
+  document.getElementById('btn-theme-toggle')?.addEventListener('click', () => {
+    const order = ['auto', 'dark', 'light'];
+    const current = localStorage.getItem('theme') || 'auto';
+    const next = order[(order.indexOf(current) + 1) % order.length];
+    localStorage.setItem('theme', next);
+    applyTheme(next);
+  });
+
   // Provider switch: show only the active provider's fields
   document.getElementById('provider-select').addEventListener('change', updateProviderVisibility);
 
@@ -120,12 +128,25 @@ function setupListeners() {
   document.getElementById('btn-add-category').addEventListener('click', addCategory);
 
   // Export
-  document.getElementById('btn-export-json').addEventListener('click', exportJson);
-  document.getElementById('btn-export-html').addEventListener('click', exportHtml);
-  document.getElementById('btn-import').addEventListener('click', () => {
-    document.getElementById('import-file').click();
+  document.getElementById('btn-export-json')?.addEventListener('click', exportJson);
+  document.getElementById('btn-export-html')?.addEventListener('click', exportHtml);
+  document.getElementById('btn-export-csv')?.addEventListener('click', exportCsv);
+
+  // Import from an uploaded Chrome/Firefox bookmarks HTML export
+  document.getElementById('btn-upload-html')?.addEventListener('click', () => {
+    document.getElementById('upload-html-file')?.click();
   });
-  document.getElementById('import-file').addEventListener('change', handleImportFile);
+  document.getElementById('upload-html-file')?.addEventListener('change', handleUploadHtml);
+
+  // Cancel a running import
+  document.getElementById('btn-cancel-import')?.addEventListener('click', async () => {
+    await sendMessage({ action: 'IMPORT_CANCEL' });
+  });
+
+  // Google Sheets: connect, backup, export to Drive
+  document.getElementById('btn-connect-sheets')?.addEventListener('click', handleConnectSheets);
+  document.getElementById('btn-backup-now')?.addEventListener('click', handleBackupNow);
+  document.getElementById('btn-export-drive')?.addEventListener('click', handleExportDrive);
 
   // Danger zone
   document.getElementById('btn-clear-ai-data').addEventListener('click', handleClearAiData);
@@ -471,25 +492,102 @@ async function updateSheetsStatus() {
   } catch {}
 }
 
-
-
-
-// ─── CSV Export ───────────────────────────────────────────────────────────────
-
-
-// ─── Theme Toggle ──────────────────────────────────────────────────────────────
-
-
-function initTheme() {
-  const saved = localStorage.getItem('ai-bookmarks-theme');
-  if (saved) { applyTheme(saved); return; }
-  if (window.matchMedia('(prefers-color-scheme: dark)').matches) applyTheme('dark');
+async function handleConnectSheets() {
+  const btn = document.getElementById('btn-connect-sheets');
+  const result = document.getElementById('sheets-result');
+  btn.disabled = true;
+  const label = btn.textContent;
+  btn.textContent = 'Connecting…';
+  try {
+    const res = await sendMessage({ action: 'GOOGLE_SHEETS_CONNECT' });
+    if (result && res?.sheetUrl) {
+      result.innerHTML = `Connected. <a href="${escapeHtml(res.sheetUrl)}" target="_blank" rel="noopener">Open spreadsheet</a>`;
+      result.classList.remove('hidden');
+    }
+    await updateSheetsStatus();
+  } catch (err) {
+    if (result) { result.textContent = `Connection failed: ${err.message}`; result.classList.remove('hidden'); }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = label;
+  }
 }
 
+async function handleBackupNow() {
+  const btn = document.getElementById('btn-backup-now');
+  const result = document.getElementById('sheets-result');
+  btn.disabled = true;
+  const label = btn.textContent;
+  btn.textContent = 'Backing up…';
+  try {
+    const res = await sendMessage({ action: 'BACKUP_NOW' });
+    if (result) {
+      const link = res?.sheetUrl ? ` <a href="${escapeHtml(res.sheetUrl)}" target="_blank" rel="noopener">Open</a>` : '';
+      result.innerHTML = `✓ Backed up ${res?.count ?? 0} bookmarks (${res?.skipped ?? 0} already present).${link}`;
+      result.classList.remove('hidden');
+    }
+  } catch (err) {
+    if (result) { result.textContent = `Backup failed: ${err.message}`; result.classList.remove('hidden'); }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = label;
+  }
+}
 
-// Init theme on load
-initTheme();
-updateSheetsStatus();
+async function handleExportDrive() {
+  const btn = document.getElementById('btn-export-drive');
+  const result = document.getElementById('drive-result');
+  btn.disabled = true;
+  const label = btn.textContent;
+  btn.textContent = 'Exporting…';
+  try {
+    const res = await sendMessage({ action: 'EXPORT_TO_DRIVE' });
+    if (result && res?.fileUrl) {
+      result.innerHTML = `✓ Exported to <a href="${escapeHtml(res.fileUrl)}" target="_blank" rel="noopener">${escapeHtml(res.fileName || 'CSV on Drive')}</a>`;
+      result.classList.remove('hidden');
+    }
+  } catch (err) {
+    if (result) { result.textContent = `Export failed: ${err.message}`; result.classList.remove('hidden'); }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = label;
+  }
+}
+
+async function handleUploadHtml(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const progress = document.getElementById('import-progress');
+  const fill = document.getElementById('progress-fill');
+  const stats = document.getElementById('progress-stats');
+
+  try {
+    const htmlContent = await file.text();
+    progress?.classList.remove('hidden');
+    if (fill) fill.style.width = '0%';
+    if (stats) stats.textContent = 'Parsing file…';
+
+    await sendMessage({ action: 'IMPORT_START', payload: { htmlContent, processWithAI: true } });
+
+    const poll = setInterval(async () => {
+      try {
+        const state = await sendMessage({ action: 'GET_IMPORT_STATE' });
+        if (!state) return;
+        const pct = state.total > 0 ? Math.round((state.scanned / state.total) * 100) : 0;
+        if (fill) fill.style.width = Math.min(pct, 100) + '%';
+        if (stats) stats.textContent = `Imported: ${state.scanned}/${state.total} | AI: ${state.enriched} | Failed: ${state.failed}`;
+        if (!state.running) {
+          clearInterval(poll);
+          setSaveStatus(`Import complete: ${state.scanned} bookmarks`);
+        }
+      } catch { clearInterval(poll); }
+    }, 500);
+  } catch (err) {
+    alert(`Upload failed: ${err.message}`);
+  }
+  e.target.value = '';
+}
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 
