@@ -455,18 +455,7 @@ document.getElementById('btn-scan-bookmarks')?.addEventListener('click', async (
   }, 500);
 });
 
-document.getElementById('btn-cancel-import')?.addEventListener('click', async () => {
-  await sendMessage({ action: 'IMPORT_CANCEL' });
-});
 
-document.getElementById('btn-upload-html')?.addEventListener('click', async () => {
-  const fileInput = document.getElementById('upload-html-file');
-  const file = fileInput.files[0];
-  if (!file) { alert('Please select a bookmarks HTML file first.'); return; }
-  const text = await file.text();
-  await sendMessage({ action: 'IMPORT_START', payload: { htmlContent: text, processWithAI: true } });
-  setSaveStatus('HTML import started. Check progress above.');
-});
 
 // ─── Google Sheets Backup ──────────────────────────────────────────────────────
 
@@ -482,74 +471,14 @@ async function updateSheetsStatus() {
   } catch {}
 }
 
-document.getElementById('btn-connect-sheets')?.addEventListener('click', async () => {
-  try {
-    const result = await sendMessage({ action: 'GOOGLE_SHEETS_CONNECT' });
-    document.getElementById('sheets-result').textContent = result.connected ? '\u2713 Connected!' : 'Failed to connect';
-    document.getElementById('sheets-result').className = 'status-msg' + (result.connected ? ' status-ok' : ' status-error');
-    updateSheetsStatus();
-  } catch (err) {
-    document.getElementById('sheets-result').textContent = '\u2717 ' + err.message;
-    document.getElementById('sheets-result').className = 'status-msg status-error';
-  }
-});
 
-document.getElementById('btn-backup-now')?.addEventListener('click', async () => {
-  try {
-    const result = await sendMessage({ action: 'GOOGLE_SHEETS_CONNECT' });
-    if (result.connected) {
-      document.getElementById('sheets-result').textContent = 'Backed up! Open in Google Sheets';
-      document.getElementById('sheets-result').className = 'status-msg status-ok';
-    }
-  } catch (err) {
-    document.getElementById('sheets-result').textContent = '\u2717 ' + err.message;
-    document.getElementById('sheets-result').className = 'status-msg status-error';
-  }
-});
 
-document.getElementById('btn-export-drive')?.addEventListener('click', async () => {
-  try {
-    const result = await sendMessage({ action: 'EXPORT_TO_DRIVE' });
-    const el = document.getElementById('drive-result');
-    if (result.fileUrl) {
-      el.innerHTML = '\u2713 Exported: <a href="' + result.fileUrl + '" target="_blank">' + result.fileName + '</a>';
-      el.className = 'status-msg status-ok';
-    }
-  } catch (err) {
-    document.getElementById('drive-result').textContent = '\u2717 ' + err.message;
-    document.getElementById('drive-result').className = 'status-msg status-error';
-  }
-});
 
 // ─── CSV Export ───────────────────────────────────────────────────────────────
 
-document.getElementById('btn-export-csv')?.addEventListener('click', async () => {
-  const { getBookmarkIndex, getSummary } = await import('../shared/storage-schema.js');
-  const index = await getBookmarkIndex();
-  const entries = Object.values(index);
-
-  const BOM = '\uFEFF';
-  const headers = 'URL,Title,Summary,Category,Tags,Rank,Date';
-  const rows = [BOM + headers];
-  for (const e of entries) {
-    const summary = e.summaryRef ? (await getSummary(e.id))?.summary || '' : '';
-    const csvRow = [e.url, e.title, summary, e.categoryId||'', (e.tags||[]).join('; '), e.rankScore||0,
-      e.createdAt ? new Date(e.createdAt).toISOString().split('T')[0] : '']
-      .map(f => { const s = String(f||''); return s.includes(',') ? '"' + s.replace(/"/g,'""') + '"' : s; }).join(',');
-    rows.push(csvRow);
-  }
-  const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = 'ai-bookmarks.csv';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-});
 
 // ─── Theme Toggle ──────────────────────────────────────────────────────────────
 
-function applyTheme(theme) {
-  document.documentElement.setAttribute('data-theme', theme);
-  localStorage.setItem('ai-bookmarks-theme', theme);
-}
 
 function initTheme() {
   const saved = localStorage.getItem('ai-bookmarks-theme');
@@ -557,10 +486,6 @@ function initTheme() {
   if (window.matchMedia('(prefers-color-scheme: dark)').matches) applyTheme('dark');
 }
 
-document.getElementById('btn-theme-toggle')?.addEventListener('click', () => {
-  const current = document.documentElement.getAttribute('data-theme');
-  applyTheme(current === 'dark' ? 'light' : 'dark');
-});
 
 // Init theme on load
 initTheme();

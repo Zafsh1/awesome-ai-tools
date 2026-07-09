@@ -171,7 +171,7 @@ export function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function isValidApiKey(key, provider = 'anthropic') {
-  if (typeof key !== 'string') return false;
+export function isValidApiKey(key, provider = 'openrouter') {
+  if (typeof key !== 'string' || key.length < 10) return false;
   return provider === 'openrouter' ? key.startsWith('sk-or-') : key.startsWith('sk-ant-');
 }

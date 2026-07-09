@@ -1,47 +1,53 @@
 // Shared constants used across all extension contexts
 
 // ─── AI Providers ─────────────────────────────────────────────────────────────
-// OpenRouter is the default: one key, many models, several completely free.
-// Anthropic direct is available as a premium option.
-
 export const PROVIDERS = {
   OPENROUTER: 'openrouter',
   ANTHROPIC: 'anthropic',
 };
 
-export const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-export const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
-export const ANTHROPIC_API_VERSION = '2023-06-01';
+export const DEFAULT_PROVIDER = PROVIDERS.OPENROUTER;
 
-// Curated model presets shown in the options dropdown.
-// OpenRouter ":free" models cost nothing (rate-limited but plenty for bookmarks).
+export const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+export const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
+export const ANTHROPIC_API_URL = CLAUDE_API_URL;
+export const CLAUDE_MODEL = 'claude-sonnet-4-6';
+export const CLAUDE_API_VERSION = '2023-06-01';
+export const ANTHROPIC_API_VERSION = CLAUDE_API_VERSION;
+
+// Curated model presets shown in the options dropdown
 export const MODEL_PRESETS = {
   [PROVIDERS.OPENROUTER]: [
-    { id: 'google/gemini-2.0-flash-exp:free', label: 'Gemini 2.0 Flash — FREE', free: true },
-    { id: 'meta-llama/llama-3.3-70b-instruct:free', label: 'Llama 3.3 70B — FREE', free: true },
-    { id: 'qwen/qwen-2.5-72b-instruct:free', label: 'Qwen 2.5 72B — FREE', free: true },
-    { id: 'deepseek/deepseek-chat:free', label: 'DeepSeek V3 — FREE', free: true },
-    { id: 'deepseek/deepseek-chat', label: 'DeepSeek V3 (paid, very cheap)', free: false },
+    { id: 'google/gemini-2.0-flash-exp:free', label: 'Gemini 2.0 Flash - FREE', free: true },
+    { id: 'meta-llama/llama-3.3-70b-instruct:free', label: 'Llama 3.3 70B - FREE', free: true },
+    { id: 'qwen/qwen-2.5-72b-instruct:free', label: 'Qwen 2.5 72B - FREE', free: true },
+    { id: 'deepseek/deepseek-chat:free', label: 'DeepSeek V3 - FREE', free: true },
+    { id: 'deepseek/deepseek-chat', label: 'DeepSeek V3 (paid)', free: false },
     { id: 'anthropic/claude-haiku-4.5', label: 'Claude Haiku 4.5 (paid)', free: false },
-    { id: 'anthropic/claude-sonnet-4.5', label: 'Claude Sonnet 4.5 (paid, best)', free: false },
+    { id: 'anthropic/claude-sonnet-4.5', label: 'Claude Sonnet 4.5 (paid)', free: false },
   ],
   [PROVIDERS.ANTHROPIC]: [
-    { id: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5 (fast, cheap)', free: false },
+    { id: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5 (fast)', free: false },
     { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6 (best)', free: false },
   ],
 };
 
-export const DEFAULT_PROVIDER = PROVIDERS.OPENROUTER;
 export const DEFAULT_MODEL = 'google/gemini-2.0-flash-exp:free';
 
-// API key prefixes per provider (for validation + UX hints)
+// Backward compatibility aliases
+export const OPENROUTER_FREE_MODELS = MODEL_PRESETS[PROVIDERS.OPENROUTER];
+export const PROVIDER_OPTIONS = [
+  { id: PROVIDERS.OPENROUTER, name: 'OpenRouter (Free)' },
+  { id: PROVIDERS.ANTHROPIC, name: 'Anthropic (Claude)' },
+];
+
+// API key prefixes per provider
 export const KEY_PREFIXES = {
   [PROVIDERS.OPENROUTER]: 'sk-or-',
   [PROVIDERS.ANTHROPIC]: 'sk-ant-',
 };
 
 // ─── Google Sheets Backup ─────────────────────────────────────────────────────
-
 export const SHEETS_API_BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
 export const DRIVE_API_BASE = 'https://www.googleapis.com/drive/v3/files';
 export const BACKUP_SPREADSHEET_TITLE = 'AI Bookmarks Backup';
@@ -50,24 +56,6 @@ export const BACKUP_SHEET_HEADER = [
 ];
 
 // ─── Storage keys ─────────────────────────────────────────────────────────────
-
-// OpenRouter (OpenAI-compatible API, free-tier models)
-export const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-export const OPENROUTER_FREE_MODELS = [
-  { id: 'qwen/qwen-2.5-72b-instruct', name: 'Qwen 2.5 72B Instruct' },
-  { id: 'google/gemini-2.0-flash-001', name: 'Gemini 2.0 Flash' },
-  { id: 'meta-llama/llama-3.3-70b-instruct', name: 'Llama 3.3 70B Instruct' },
-  { id: 'deepseek/deepseek-chat', name: 'DeepSeek Chat' },
-];
-
-// AI providers
-export const DEFAULT_PROVIDER = 'openrouter';
-export const PROVIDER_OPTIONS = [
-  { id: 'openrouter', name: 'OpenRouter (Free)' },
-  { id: 'anthropic', name: 'Anthropic (Claude)' },
-];
-
-// Storage keys
 export const STORAGE_KEYS = {
   SETTINGS: 'settings',
   BOOKMARK_INDEX: 'bookmark_index',
@@ -79,7 +67,6 @@ export const STORAGE_KEYS = {
 export const SUMMARY_KEY_PREFIX = 'summary_';
 
 // ─── Ranking ──────────────────────────────────────────────────────────────────
-
 export const RANK_WEIGHTS = {
   VISIT_COUNT: 0.4,
   RECENCY: 0.3,
@@ -87,11 +74,9 @@ export const RANK_WEIGHTS = {
   SHARE_COUNT: 0.1,
 };
 
-// Recency decay lambda (half-life ~7 days)
 export const RECENCY_LAMBDA = 0.1;
 
 // ─── Limits ───────────────────────────────────────────────────────────────────
-
 export const MAX_BOOKMARK_INDEX_SIZE = 500;
 export const MAX_EXTRACTED_TEXT_LENGTH = 4000;
 export const MAX_CATEGORIES = 50;
@@ -99,31 +84,16 @@ export const MAX_VISIT_LOG_ENTRIES = 1000;
 export const BOOKMARK_LRU_EVICT_COUNT = 50;
 
 // ─── AI pipeline ──────────────────────────────────────────────────────────────
-
 export const AI_MAX_RETRIES = 3;
 export const AI_RETRY_DELAYS_MS = [1000, 2000, 4000];
 export const CONTENT_EXTRACT_TIMEOUT_MS = 2000;
 export const QUEUE_PROCESS_ALARM = 'process_queue';
 export const RANKING_RECALC_ALARM = 'ranking_recalc';
-
-// Google Sheets backup
 export const BACKUP_ALARM = 'sheets_backup';
-
-// Loop prevention TTL (ms): ignore bookmark events for IDs we just moved
 export const MOVE_TTL_MS = 500;
+export const AI_BATCH_SIZE = 5;
 
-// Firebase was removed in v2 (replaced by Google Sheets sync).
-// Historical reference config, kept commented out in case a rollback is ever needed:
-// export const FIREBASE_CONFIG = {
-//   apiKey: 'YOUR_...EY',
-//   authDomain: 'YOUR_PROJECT.firebaseapp.com',
-//   projectId: 'YOUR_PROJECT_ID',
-//   storageBucket: 'YOUR_PROJECT.appspot.com',
-//   messagingSenderId: 'YOUR_SENDER_ID',
-//   appId: 'YOUR_APP_ID',
-// };
-
-// Message actions (runtime messaging between contexts)
+// ─── Message actions ──────────────────────────────────────────────────────────
 export const ACTIONS = {
   EXTRACT_CONTENT: 'EXTRACT_CONTENT',
   BOOKMARK_ENRICHED: 'BOOKMARK_ENRICHED',
@@ -143,12 +113,11 @@ export const ACTIONS = {
 };
 
 // ─── Default settings ─────────────────────────────────────────────────────────
-
 export const DEFAULT_SETTINGS = {
   provider: DEFAULT_PROVIDER,
   claudeApiKey: null,
   openrouterApiKey: null,
-  selectedModel: 'qwen/qwen-2.5-72b-instruct',
+  selectedModel: DEFAULT_MODEL,
   enableAutoCategories: true,
   enableAiSummaries: true,
   rankingEnabled: true,
@@ -163,10 +132,6 @@ export const DEFAULT_SETTINGS = {
 };
 
 // ─── Context menu item IDs ────────────────────────────────────────────────────
-
 export const CONTEXT_MENU = {
   BOOKMARK_PAGE: 'ai_bookmark_page',
 };
-
-// Batch size for AI processing during import
-export const AI_BATCH_SIZE = 5;

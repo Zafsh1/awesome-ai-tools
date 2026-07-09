@@ -218,11 +218,6 @@ async function handleMessage(message) {
       return getImportState();
     }
 
-
-      const { getImportState } = await import('./importer.js');
-      return getImportState();
-    }
-
     case ACTIONS.DELETE_BOOKMARK: {
       const { deleteBookmark } = await import('../shared/storage-schema.js');
       await deleteBookmark(payload.bookmarkId);

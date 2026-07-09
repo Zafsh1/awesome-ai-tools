@@ -215,11 +215,8 @@ function sendMessage(message) {
 // ─── Start ────────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', init);
-  // Theme management
-  initTheme();
-  document.getElementById('btn-theme').addEventListener('click', toggleTheme);
-});
 
+// Theme management
 function initTheme() {
   const saved = localStorage.getItem('ai-bookmarks-theme');
   if (saved) {
@@ -237,4 +234,11 @@ function toggleTheme() {
   document.documentElement.setAttribute('data-theme', next);
   localStorage.setItem('ai-bookmarks-theme', next);
 }
+
+// Init theme on load
+initTheme();
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('btn-theme');
+  if (btn) btn.addEventListener('click', toggleTheme);
+});
 

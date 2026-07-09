@@ -121,10 +121,19 @@ export async function startImport(options = {}) {
     reportProgress();
 
     // Process in batches
-    for (let i = 0; i < bookmarks.length; i += AI_BATCH_SIZE) {
+    // Check which bookmarks are already indexed
+    const existingIndex = await getBookmarkIndex();
+    const existingUrls = new Set(Object.values(existingIndex).map(e => e.url));
+    const existingIds = new Set(Object.values(existingIndex).map(e => e.chromeBookmarkId).filter(Boolean));
+    const newBookmarks = bookmarks.filter(bm => !existingUrls.has(bm.url) && !existingIds.has(bm.id));
+
+    importState.total = newBookmarks.length;
+    reportProgress();
+
+    for (let i = 0; i < newBookmarks.length; i += AI_BATCH_SIZE) {
       if (importState.cancelled) break;
 
-      const batch = bookmarks.slice(i, i + AI_BATCH_SIZE);
+      const batch = newBookmarks.slice(i, i + AI_BATCH_SIZE);
 
       for (const bm of batch) {
         if (importState.cancelled) break;
@@ -182,7 +191,7 @@ export async function startImport(options = {}) {
     reportProgress();
   }
 
-  return { ...importState };
+  return { ...importState, queued: importState.enriched };
 }
 
 /**
@@ -196,5 +205,9 @@ export function cancelImport() {
  * Gets the current import state.
  */
 export function getImportState() {
-  return { ...importState };
+  return { ...importState, queued: importState.enriched };
 }
+
+
+// ─── Backward-compatible aliases ──────────────────────────────────────────────
+export { startImport as importExistingBookmarks, getImportState as getImportProgress };
