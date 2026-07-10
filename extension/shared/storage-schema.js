@@ -5,9 +5,19 @@ import {
   STORAGE_KEYS,
   SUMMARY_KEY_PREFIX,
   DEFAULT_SETTINGS,
+  DEFAULT_MODEL,
   MAX_BOOKMARK_INDEX_SIZE,
   BOOKMARK_LRU_EVICT_COUNT,
 } from './constants.js';
+
+// OpenRouter model ids that were removed and now return 404. If any of these is
+// still stored as the selected model, fall back to the current default so the
+// extension keeps working without the user having to reconfigure.
+const DEAD_MODELS = new Set([
+  'google/gemini-2.0-flash-exp:free',
+  'deepseek/deepseek-chat:free',
+  'qwen/qwen-2.5-72b-instruct:free',
+]);
 
 // ─── Type Definitions (JSDoc) ────────────────────────────────────────────────
 
@@ -68,6 +78,10 @@ export async function getSettings() {
   // existed keep using Anthropic instead of silently switching to OpenRouter.
   if (stored.provider === undefined && stored.claudeApiKey) {
     settings.provider = 'anthropic';
+  }
+  // Heal a stored model that OpenRouter has since removed (would 404).
+  if (!settings.selectedModel || DEAD_MODELS.has(settings.selectedModel)) {
+    settings.selectedModel = DEFAULT_MODEL;
   }
   return settings;
 }

@@ -20,7 +20,7 @@ function openRouterResponse(text, model = 'google/gemini-2.0-flash-exp:free') {
   };
 }
 
-async function setupKey(model = 'google/gemini-2.0-flash-exp:free') {
+async function setupKey(model = 'meta-llama/llama-3.3-70b-instruct:free') {
   const encrypted = await encryptApiKey('sk-or-test-key');
   await saveSettings({ provider: 'openrouter', openrouterApiKey: encrypted, selectedModel: model });
 }
@@ -65,7 +65,7 @@ describe('openrouter-client (OpenRouter provider)', () => {
     assert.ok(captured.url.startsWith('https://openrouter.ai/'));
     assert.equal(captured.init.headers.Authorization, 'Bearer sk-or-test-key');
     const body = JSON.parse(captured.init.body);
-    assert.equal(body.model, 'google/gemini-2.0-flash-exp:free');
+    assert.equal(body.model, 'meta-llama/llama-3.3-70b-instruct:free');
     assert.equal(body.messages[0].role, 'system');
     assert.ok(body.messages[1].content.includes('https://example.com'));
   });
