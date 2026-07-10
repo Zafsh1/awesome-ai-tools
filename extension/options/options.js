@@ -3,7 +3,9 @@
 import { getSettings, saveSettings } from '../shared/storage-schema.js';
 import { encryptApiKey, decryptApiKey, isValidApiKey, generateId, escapeHtml } from '../shared/utils.js';
 import { testApiKey } from '../background/provider-manager.js';
-import { RANK_WEIGHTS, PROVIDER_OPTIONS, OPENROUTER_FREE_MODELS, DEFAULT_PROVIDER } from '../shared/constants.js';
+import { RANK_WEIGHTS, PROVIDER_OPTIONS, OPENROUTER_FREE_MODELS, DEFAULT_PROVIDER, OPENROUTER_MODELS_URL } from '../shared/constants.js';
+
+const CUSTOM_MODEL_VALUE = '__custom__';
 import { localizeDocument } from '../shared/i18n.js';
 
 let settings = {};
@@ -45,14 +47,10 @@ async function populateForm() {
   ).join('');
   providerSelect.value = settings.provider || DEFAULT_PROVIDER;
 
-  // OpenRouter model selector
-  const modelSelect = document.getElementById('model-select');
-  modelSelect.innerHTML = OPENROUTER_FREE_MODELS.map(
-    (m) => `<option value="${escapeHtml(m.id)}">${escapeHtml(m.name)}</option>`
-  ).join('');
-  if (OPENROUTER_FREE_MODELS.some((m) => m.id === settings.selectedModel)) {
-    modelSelect.value = settings.selectedModel;
-  }
+  // OpenRouter model selector: paint the static list instantly, then refresh
+  // with the live free-model list from OpenRouter (never goes stale).
+  renderModelOptions(OPENROUTER_FREE_MODELS, settings.selectedModel);
+  loadLiveModels(settings.selectedModel);
 
   updateProviderVisibility();
 
@@ -105,6 +103,7 @@ function setupListeners() {
 
   // Provider switch: show only the active provider's fields
   document.getElementById('provider-select').addEventListener('change', updateProviderVisibility);
+  document.getElementById('model-select')?.addEventListener('change', onModelSelectChange);
 
   // API keys: show/hide
   setupKeyToggle('btn-toggle-key', 'api-key');
@@ -153,6 +152,73 @@ function setupListeners() {
   document.getElementById('btn-reset-all').addEventListener('click', handleResetAll);
 
   document.getElementById('btn-save').addEventListener('click', handleSave);
+}
+
+// ─── Model selection ──────────────────────────────────────────────────────────
+
+/**
+ * Renders the model dropdown from a list of {id, label} and appends a
+ * "Custom…" entry. Preserves the current selection; if `selected` isn't in the
+ * list it switches to Custom and fills the free-text input.
+ */
+function renderModelOptions(models, selected) {
+  const sel = document.getElementById('model-select');
+  const custom = document.getElementById('model-custom');
+  if (!sel) return;
+
+  const opts = models.map(
+    (m) => `<option value="${escapeHtml(m.id)}">${escapeHtml(m.label || m.id)}${m.free ? '' : ''}</option>`
+  );
+  opts.push(`<option value="${CUSTOM_MODEL_VALUE}">✏️ Custom / paste model id…</option>`);
+  sel.innerHTML = opts.join('');
+
+  const known = models.some((m) => m.id === selected);
+  if (selected && !known) {
+    sel.value = CUSTOM_MODEL_VALUE;
+    if (custom) { custom.value = selected; custom.classList.remove('hidden'); }
+  } else {
+    sel.value = selected || (models[0] && models[0].id) || CUSTOM_MODEL_VALUE;
+    if (custom) custom.classList.add('hidden');
+  }
+}
+
+/** Fetches the live free-model list from OpenRouter and repaints the dropdown. */
+async function loadLiveModels(selected) {
+  try {
+    const res = await fetch(OPENROUTER_MODELS_URL);
+    if (!res.ok) return; // keep the static list
+    const data = await res.json();
+    const free = (data.data || [])
+      .filter((m) => {
+        const p = m.pricing || {};
+        return String(p.prompt) === '0' && String(p.completion) === '0';
+      })
+      .map((m) => ({ id: m.id, label: `${m.name || m.id} — FREE`, free: true }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+
+    if (free.length) renderModelOptions(free, selected || document.getElementById('model-select')?.value);
+  } catch {
+    // Offline or blocked — the static list stays in place.
+  }
+}
+
+/** Shows the free-text model input only when "Custom…" is selected. */
+function onModelSelectChange() {
+  const sel = document.getElementById('model-select');
+  const custom = document.getElementById('model-custom');
+  if (!sel || !custom) return;
+  custom.classList.toggle('hidden', sel.value !== CUSTOM_MODEL_VALUE);
+  if (sel.value === CUSTOM_MODEL_VALUE) custom.focus();
+}
+
+/** The effective model id to persist (resolves the Custom case). */
+function getSelectedModel() {
+  const sel = document.getElementById('model-select');
+  if (!sel) return '';
+  if (sel.value === CUSTOM_MODEL_VALUE) {
+    return document.getElementById('model-custom')?.value.trim() || '';
+  }
+  return sel.value;
 }
 
 // ─── Provider UI ──────────────────────────────────────────────────────────────
@@ -405,7 +471,7 @@ async function saveCurrentSettings() {
     provider: document.getElementById('provider-select').value,
     claudeApiKey: encryptedKey,
     openrouterApiKey: encryptedOrKey,
-    selectedModel: document.getElementById('model-select').value,
+    selectedModel: getSelectedModel() || settings.selectedModel,
     enableAutoCategories: document.getElementById('enable-categories').checked,
     enableAiSummaries: document.getElementById('enable-summaries').checked,
     rankingEnabled: document.getElementById('enable-ranking').checked,

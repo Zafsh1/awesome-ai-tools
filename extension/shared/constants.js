@@ -16,13 +16,16 @@ export const CLAUDE_API_VERSION = '2023-06-01';
 export const ANTHROPIC_API_VERSION = CLAUDE_API_VERSION;
 
 // Curated model presets shown in the options dropdown
+// Static fallback list. The options page fetches the LIVE free-model list from
+// OpenRouter at runtime (models come and go), so this is only used when that
+// fetch fails. Keep a few widely-available free models here.
 export const MODEL_PRESETS = {
   [PROVIDERS.OPENROUTER]: [
-    { id: 'google/gemini-2.0-flash-exp:free', label: 'Gemini 2.0 Flash - FREE', free: true },
-    { id: 'meta-llama/llama-3.3-70b-instruct:free', label: 'Llama 3.3 70B - FREE', free: true },
-    { id: 'qwen/qwen-2.5-72b-instruct:free', label: 'Qwen 2.5 72B - FREE', free: true },
-    { id: 'deepseek/deepseek-chat:free', label: 'DeepSeek V3 - FREE', free: true },
-    { id: 'deepseek/deepseek-chat', label: 'DeepSeek V3 (paid)', free: false },
+    { id: 'meta-llama/llama-3.3-70b-instruct:free', label: 'Llama 3.3 70B — FREE', free: true },
+    { id: 'deepseek/deepseek-chat-v3-0324:free', label: 'DeepSeek V3 — FREE', free: true },
+    { id: 'deepseek/deepseek-r1-0528:free', label: 'DeepSeek R1 — FREE', free: true },
+    { id: 'google/gemma-3-27b-it:free', label: 'Gemma 3 27B — FREE', free: true },
+    { id: 'mistralai/mistral-small-3.2-24b-instruct:free', label: 'Mistral Small 3.2 — FREE', free: true },
     { id: 'anthropic/claude-haiku-4.5', label: 'Claude Haiku 4.5 (paid)', free: false },
     { id: 'anthropic/claude-sonnet-4.5', label: 'Claude Sonnet 4.5 (paid)', free: false },
   ],
@@ -32,7 +35,11 @@ export const MODEL_PRESETS = {
   ],
 };
 
-export const DEFAULT_MODEL = 'google/gemini-2.0-flash-exp:free';
+export const DEFAULT_MODEL = 'meta-llama/llama-3.3-70b-instruct:free';
+
+// Public OpenRouter models endpoint (no auth needed) — used to populate the
+// model dropdown with the live free-model list so it never goes stale.
+export const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models';
 
 // Backward compatibility aliases
 export const OPENROUTER_FREE_MODELS = MODEL_PRESETS[PROVIDERS.OPENROUTER];

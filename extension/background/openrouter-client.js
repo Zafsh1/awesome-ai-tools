@@ -68,8 +68,11 @@ export async function testApiKey(apiKey) {
   return true;
 }
 
+// Accept ANY model id the user configured (from the live list or typed in),
+// so custom models like "tencent/hunyuan-a13b-instruct:free" work. Only fall
+// back to the default when nothing is set.
 function resolveModel(selectedModel) {
-  return OPENROUTER_FREE_MODELS.some((m) => m.id === selectedModel) ? selectedModel : DEFAULT_MODEL;
+  return typeof selectedModel === 'string' && selectedModel.trim() ? selectedModel.trim() : DEFAULT_MODEL;
 }
 
 // ─── Prompt Builder ───────────────────────────────────────────────────────────

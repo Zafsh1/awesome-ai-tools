@@ -70,15 +70,28 @@ describe('openrouter-client (OpenRouter provider)', () => {
     assert.ok(body.messages[1].content.includes('https://example.com'));
   });
 
-  test('falls back to the default free model for an unknown model id', async () => {
-    await setupKey('some/unknown-model');
+  test('passes a custom model id through as-is (not in the static list)', async () => {
+    await setupKey('tencent/hunyuan-a13b-instruct:free');
     let captured;
     globalThis.fetch = async (url, init) => {
       captured = init;
       return openRouterResponse(GOOD_JSON);
     };
     await enrichBookmark(PARAMS);
-    assert.equal(JSON.parse(captured.body).model, 'google/gemini-2.0-flash-exp:free');
+    assert.equal(JSON.parse(captured.body).model, 'tencent/hunyuan-a13b-instruct:free');
+  });
+
+  test('falls back to the default model only when none is set', async () => {
+    const { encryptApiKey } = await import('../shared/utils.js');
+    const { saveSettings } = await import('../shared/storage-schema.js');
+    await saveSettings({ provider: 'openrouter', openrouterApiKey: await encryptApiKey('sk-or-test-key'), selectedModel: '' });
+    let captured;
+    globalThis.fetch = async (url, init) => {
+      captured = init;
+      return openRouterResponse(GOOD_JSON);
+    };
+    await enrichBookmark(PARAMS);
+    assert.equal(JSON.parse(captured.body).model, 'meta-llama/llama-3.3-70b-instruct:free');
   });
 
   test('401 auth error is NOT retried', async () => {

@@ -64,9 +64,10 @@
               <p id="openrouter-key-status" class="status-msg"></p>
             </div>
             <div class="field-group">
-              <label for="model-select" class="field-label">Free Model</label>
+              <label for="model-select" class="field-label">Model</label>
               <select id="model-select" class="select-input"></select>
-              <p class="field-desc">All models listed are free via OpenRouter</p>
+              <input type="text" id="model-custom" class="text-input hidden" placeholder="e.g. tencent/hunyuan-a13b-instruct:free" autocomplete="off" style="margin-top:6px">
+              <p class="field-desc">Live free-model list from OpenRouter. Pick “✏️ Custom…” to paste any model id from <a href="https://openrouter.ai/models?max_price=0" target="_blank" rel="noopener">openrouter.ai/models</a>.</p>
             </div>
           </div>
 

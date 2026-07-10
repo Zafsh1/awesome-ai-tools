@@ -256,6 +256,7 @@ body {
 .select-input { font-family: var(--font-body); }
 
 .provider-section.hidden { display: none; }
+.hidden { display: none !important; }
 
 /* ─── Buttons ───────────────────────────────────────────── */
 .btn {
