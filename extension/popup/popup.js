@@ -5,7 +5,6 @@
 import { ACTIONS } from '../shared/constants.js';
 import { renderCategoryTree } from './components/category-tree.js';
 import { renderBookmarkList } from './components/bookmark-list.js';
-import { initSearchBar } from './components/search-bar.js';
 import { initShareModal } from './components/share-modal.js';
 import { debounce } from '../shared/utils.js';
 import { localizeDocument } from '../shared/i18n.js';

@@ -452,6 +452,19 @@ async function handleSave() {
   }
 }
 
+/**
+ * Encrypts an API-key input's value only if the user actually changed it.
+ * Returns the previously-stored encrypted blob when unchanged, and emptyValue
+ * when the field was cleared.
+ */
+async function encryptIfChanged(inputId, storedEncrypted, emptyValue = '') {
+  const raw = document.getElementById(inputId)?.value.trim() || '';
+  if (!raw) return emptyValue;
+  const currentDecrypted = storedEncrypted ? await decryptApiKey(storedEncrypted) : '';
+  if (raw === currentDecrypted) return storedEncrypted;
+  return encryptApiKey(raw);
+}
+
 async function saveCurrentSettings() {
   // API keys: encrypt before saving (only re-encrypt when changed)
   const encryptedKey = await encryptIfChanged('api-key', settings.claudeApiKey, '');

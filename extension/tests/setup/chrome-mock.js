@@ -40,7 +40,19 @@ export function installChromeMock() {
     runtime: {
       id: 'test-extension-id',
       lastError: null,
-      sendMessage: async () => {},
+      // Supports both promise style (bg scripts) and callback style (pages).
+      // Tests can set _messageHandler to script responses per action.
+      _messageHandler: null,
+      sendMessage(message, callback) {
+        const handler = this._messageHandler;
+        const result = Promise.resolve(handler ? handler(message) : {});
+        if (typeof callback === 'function') {
+          result.then((r) => callback(r)).catch(() => callback({ error: 'mock error' }));
+          return undefined;
+        }
+        return result;
+      },
+      getManifest: () => ({ version: '0.0.0-test', oauth2: { client_id: 'YOUR_GOOGLE_OAUTH_CLIENT_ID.apps.googleusercontent.com' } }),
       onMessage: { addListener() {} },
       onInstalled: { addListener() {} },
       openOptionsPage: () => {},
