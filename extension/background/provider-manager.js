@@ -37,9 +37,9 @@ export async function enrichWithAI(params) {
 /**
  * Tests an API key against the selected provider (defaults to the active one).
  */
-export async function testApiKey(apiKey, provider) {
+export async function testApiKey(apiKey, provider, model) {
   const client = await getClient(provider);
-  return client.testApiKey(apiKey);
+  return client.testApiKey(apiKey, model);
 }
 
 /**

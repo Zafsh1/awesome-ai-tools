@@ -56,7 +56,7 @@ export async function enrichBookmark({ url, title, extractedText, description, c
 /**
  * Makes a raw call to OpenRouter. Used by options page to validate API key.
  */
-export async function testApiKey(apiKey) {
+export async function testApiKey(apiKey, model) {
   const prompt = buildPrompt({
     url: 'https://example.com',
     title: 'Test',
@@ -64,7 +64,9 @@ export async function testApiKey(apiKey) {
     description: '',
     categories: [],
   });
-  await callOpenRouterWithRetry(apiKey, DEFAULT_MODEL, prompt, 1);
+  // Test against the model the user actually selected (a live one), so the
+  // test never fails on a stale hardcoded default.
+  await callOpenRouterWithRetry(apiKey, resolveModel(model), prompt, 1);
   return true;
 }
 

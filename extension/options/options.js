@@ -260,7 +260,8 @@ async function handleTestKey({ provider, inputId, statusId, btnId }) {
   showStatus(statusEl, '', '');
 
   try {
-    await testApiKey(keyInput, provider);
+    const model = provider === 'openrouter' ? getSelectedModel() : undefined;
+    await testApiKey(keyInput, provider, model);
     showStatus(statusEl, '✓ API key is valid', 'ok');
   } catch (err) {
     showStatus(statusEl, `✗ ${err.message}`, 'error');
