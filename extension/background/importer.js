@@ -8,9 +8,7 @@ import {
   getBookmarkIndex, upsertBookmark, saveBookmarkIndex,
   enqueuePending, getSettings,
 } from '../shared/storage-schema.js';
-import { enrichWithAI } from './provider-manager.js';
-import { applyCategorizationResult } from './categorizer.js';
-import { computeRankScore } from './ranker.js';
+import { processQueue } from './bookmark-handler.js';
 import { logError } from '../shared/error-handler.js';
 
 let importState = {
@@ -189,6 +187,11 @@ export async function startImport(options = {}) {
   } finally {
     importState.running = false;
     reportProgress();
+  }
+
+  // Kick off AI processing now instead of waiting for the periodic alarm.
+  if (processWithAI && importState.enriched > 0) {
+    processQueue().catch((err) => logError('Importer: processQueue', err));
   }
 
   return { ...importState, queued: importState.enriched };

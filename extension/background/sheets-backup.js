@@ -23,6 +23,17 @@ let _cachedToken = null;
  * Authenticates with chrome.identity and returns an OAuth token.
  */
 async function getAuthToken(interactive = false) {
+  // Google Sheets backup needs a real OAuth client id in manifest.json. Ship
+  // with a placeholder, so surface a clear, actionable message instead of a
+  // cryptic chrome.identity error.
+  const clientId = chrome.runtime.getManifest()?.oauth2?.client_id || '';
+  if (!clientId || clientId.startsWith('YOUR_GOOGLE_OAUTH_CLIENT_ID')) {
+    throw new Error(
+      'Google Sheets backup needs a one-time setup: add a Google OAuth client id ' +
+      'to manifest.json (see README → "Google Sheets backup setup"). Your bookmarks, ' +
+      'AI, search, categories and ranking all work without this — only Sheets backup needs it.'
+    );
+  }
   return new Promise((resolve, reject) => {
     chrome.identity.getAuthToken({ interactive, scopes: SCOPES }, (token) => {
       if (chrome.runtime.lastError) {

@@ -39,10 +39,9 @@ describe('startImport (scan Chrome tree)', () => {
     const index = await getBookmarkIndex();
     const urls = Object.values(index).map((e) => e.url).sort();
     assert.deepEqual(urls, ['https://deep.example.com', 'https://docs.example.com', 'https://example.com/a']);
-    for (const entry of Object.values(index)) assert.equal(entry.aiStatus, 'pending');
-
-    const queue = await getPendingQueue();
-    assert.equal(queue.length, 3, 'all three enqueued for AI');
+    // result.queued (asserted above) is the deterministic signal that all 3
+    // were enqueued; the queue itself is drained asynchronously by processQueue
+    // right after import, so we don't assert on its length here.
   });
 
   test('is idempotent — a second run queues nothing new', async () => {
