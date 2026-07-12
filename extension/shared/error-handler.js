@@ -17,6 +17,7 @@ export const ERROR_CODES = {
   API_PARSE: 'API_PARSE',           // JSON parse failure
   API_NETWORK: 'API_NETWORK',       // Network / fetch failure
   API_NO_KEY: 'API_NO_KEY',         // No API key configured
+  API_MODEL_UNAVAILABLE: 'API_MODEL_UNAVAILABLE', // 404 - model has no endpoints
 
   // Storage errors
   STORAGE_QUOTA: 'STORAGE_QUOTA',   // Storage quota exceeded
@@ -43,7 +44,12 @@ export const ERROR_CODES = {
  */
 export function isRetryable(error) {
   if (!(error instanceof AiBookmarksError)) return true;
-  return ![ERROR_CODES.API_AUTH, ERROR_CODES.API_NO_KEY, ERROR_CODES.API_PARSE].includes(error.code);
+  return ![
+    ERROR_CODES.API_AUTH,
+    ERROR_CODES.API_NO_KEY,
+    ERROR_CODES.API_PARSE,
+    ERROR_CODES.API_MODEL_UNAVAILABLE, // don't retry a dead model — switch models instead
+  ].includes(error.code);
 }
 
 /**

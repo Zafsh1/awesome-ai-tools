@@ -8,11 +8,15 @@ import {
   AI_RETRY_DELAYS_MS,
   MAX_EXTRACTED_TEXT_LENGTH,
 } from '../shared/constants.js';
-import { getSettings } from '../shared/storage-schema.js';
+import { getSettings, updateSettings } from '../shared/storage-schema.js';
 import { decryptApiKey, sleep, truncate } from '../shared/utils.js';
 import { AiBookmarksError, ERROR_CODES, httpStatusToErrorCode, isRetryable, logError } from '../shared/error-handler.js';
 
 const DEFAULT_MODEL = OPENROUTER_FREE_MODELS[0].id;
+
+// Free models to fall through when the preferred one returns 404. Ordered by
+// the static preset list (already free-only at the top).
+const FALLBACK_MODELS = OPENROUTER_FREE_MODELS.filter((m) => m.free).map((m) => m.id);
 
 // Simple in-memory rate limiter (requests per minute)
 const rateLimiter = {
@@ -50,11 +54,15 @@ export async function enrichBookmark({ url, title, extractedText, description, c
   const model = resolveModel(settings.selectedModel);
   const prompt = buildPrompt({ url, title, extractedText, description, categories });
 
-  return callOpenRouterWithRetry(apiKey, model, prompt);
+  // Self-heal: if the preferred model 404s, transparently try other free
+  // models and persist the one that works.
+  return callWithModelFallback(apiKey, model, prompt, { persist: true });
 }
 
 /**
  * Makes a raw call to OpenRouter. Used by options page to validate API key.
+ * Tries the selected model first, then falls back through free models — a 404
+ * on one model shouldn't make a valid key look invalid.
  */
 export async function testApiKey(apiKey, model) {
   const prompt = buildPrompt({
@@ -64,10 +72,41 @@ export async function testApiKey(apiKey, model) {
     description: '',
     categories: [],
   });
-  // Test against the model the user actually selected (a live one), so the
-  // test never fails on a stale hardcoded default.
-  await callOpenRouterWithRetry(apiKey, resolveModel(model), prompt, 1);
+  await callWithModelFallback(apiKey, resolveModel(model), prompt, { persist: false, maxRetries: 1 });
   return true;
+}
+
+/**
+ * Calls OpenRouter with the preferred model, transparently falling through to
+ * other free models on a 404 "no endpoints" error. On success with a model
+ * other than the stored one, persists it (when persist=true) so future calls
+ * skip the dead model.
+ */
+async function callWithModelFallback(apiKey, preferredModel, prompt, { persist = false, maxRetries = AI_MAX_RETRIES } = {}) {
+  const candidates = [preferredModel, ...FALLBACK_MODELS.filter((m) => m !== preferredModel)];
+  let lastError;
+
+  for (const candidate of candidates) {
+    try {
+      const result = await callOpenRouterWithRetry(apiKey, candidate, prompt, maxRetries);
+      if (persist && candidate !== preferredModel) {
+        await updateSettings({ selectedModel: candidate });
+        logError('OpenRouter model auto-switch', new AiBookmarksError(
+          `Model "${preferredModel}" unavailable — switched to "${candidate}"`,
+          ERROR_CODES.API_MODEL_UNAVAILABLE
+        ));
+      }
+      return result;
+    } catch (err) {
+      lastError = err;
+      // Only keep trying other models when THIS model is unavailable.
+      if (!(err instanceof AiBookmarksError) || err.code !== ERROR_CODES.API_MODEL_UNAVAILABLE) {
+        throw err;
+      }
+    }
+  }
+
+  throw lastError;
 }
 
 // Accept ANY model id the user configured (from the live list or typed in),
@@ -159,15 +198,19 @@ async function callOpenRouter(apiKey, model, { system, userMessage }) {
   }
 
   if (!response.ok) {
-    const errorCode = httpStatusToErrorCode(response.status);
     let body;
     try {
       body = await response.json();
     } catch {}
+    // 404 "No endpoints found" means the model id is gone/unavailable — flag it
+    // so the caller can transparently switch to another free model.
+    const errorCode = response.status === 404
+      ? ERROR_CODES.API_MODEL_UNAVAILABLE
+      : httpStatusToErrorCode(response.status);
     throw new AiBookmarksError(
       `OpenRouter API error ${response.status}: ${body?.error?.message || response.statusText}`,
       errorCode,
-      { status: response.status, body }
+      { status: response.status, body, model }
     );
   }
 

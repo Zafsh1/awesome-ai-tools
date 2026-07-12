@@ -122,4 +122,37 @@ describe('openrouter-client (OpenRouter provider)', () => {
     resetChromeMock();
     await assert.rejects(() => enrichBookmark(PARAMS), (err) => err.code === ERROR_CODES.API_NO_KEY);
   });
+
+  test('self-heals: a 404 on the selected model auto-switches to a working free model and persists it', async () => {
+    await setupKey('deepseek/deepseek-r1-0528:free'); // pretend this one is dead
+    let calls = 0;
+    globalThis.fetch = async (url, init) => {
+      calls++;
+      const model = JSON.parse(init.body).model;
+      if (model === 'deepseek/deepseek-r1-0528:free') {
+        return { ok: false, status: 404, statusText: 'Not Found', json: async () => ({ error: { message: 'No endpoints found' } }) };
+      }
+      return openRouterResponse(GOOD_JSON, model); // any other model works
+    };
+
+    const result = await enrichBookmark(PARAMS);
+    assert.equal(result.category, 'Technology', 'enrichment succeeded via a fallback model');
+    assert.ok(calls >= 2, 'tried the dead model then a fallback');
+
+    // The working model was persisted so future calls skip the dead one
+    const { getSettings } = await import('../shared/storage-schema.js');
+    const s = await getSettings();
+    assert.notEqual(s.selectedModel, 'deepseek/deepseek-r1-0528:free');
+  });
+
+  test('a non-404 error (401) is NOT masked by model fallback', async () => {
+    await setupKey();
+    let calls = 0;
+    globalThis.fetch = async () => {
+      calls++;
+      return { ok: false, status: 401, statusText: 'Unauthorized', json: async () => ({ error: { message: 'bad key' } }) };
+    };
+    await assert.rejects(() => enrichBookmark(PARAMS), (err) => err.code === ERROR_CODES.API_AUTH);
+    assert.equal(calls, 1, 'auth error stops immediately, no model cycling');
+  });
 });
