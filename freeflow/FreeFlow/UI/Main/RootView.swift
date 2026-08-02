@@ -3,7 +3,7 @@ import SwiftUI
 /// Main window: sidebar navigation, with onboarding shown until the user has
 /// completed the initial setup.
 struct RootView: View {
-    @EnvironmentObject private var state: AppState
+    @EnvironmentObject private var settings: AppSettings
 
     enum SidebarSection: String, CaseIterable, Identifiable {
         case home = "Home"
@@ -30,7 +30,7 @@ struct RootView: View {
     @State private var selection: SidebarSection = .home
 
     var body: some View {
-        if state.settings.onboardingComplete {
+        if settings.onboardingComplete {
             NavigationSplitView {
                 List(SidebarSection.allCases, selection: $selection) { section in
                     Label(section.rawValue, systemImage: section.symbol)

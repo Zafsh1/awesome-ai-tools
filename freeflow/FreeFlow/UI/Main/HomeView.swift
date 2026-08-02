@@ -3,7 +3,8 @@ import SwiftUI
 /// Landing screen: dictation stats and recent activity, in the spirit of the
 /// Wispr Flow home screen.
 struct HomeView: View {
-    @EnvironmentObject private var state: AppState
+    @EnvironmentObject private var settings: AppSettings
+    @EnvironmentObject private var history: HistoryStore
 
     var body: some View {
         ScrollView {
@@ -21,20 +22,20 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Speak. Don't type.")
                 .font(.largeTitle.bold())
-            Text("Hold **\(state.settings.dictationKey.displayName)** and talk into any app. Double-tap it for hands-free. Hold **\(state.settings.commandKey.displayName)** over selected text to edit it by voice.")
+            Text("Hold **\(settings.dictationKey.displayName)** and talk into any app. Double-tap it for hands-free. Hold **\(settings.commandKey.displayName)** over selected text to edit it by voice.")
                 .foregroundStyle(.secondary)
         }
     }
 
     private var statsRow: some View {
         HStack(spacing: 14) {
-            StatTile(value: "\(state.history.totalWords)", label: "Words dictated",
+            StatTile(value: "\(history.totalWords)", label: "Words dictated",
                      symbol: "text.word.spacing")
-            StatTile(value: "\(state.history.wordsThisWeek)", label: "Words this week",
+            StatTile(value: "\(history.wordsThisWeek)", label: "Words this week",
                      symbol: "calendar")
-            StatTile(value: "\(state.history.averageWPM)", label: "Average WPM",
+            StatTile(value: "\(history.averageWPM)", label: "Average WPM",
                      symbol: "speedometer")
-            StatTile(value: "\(state.history.streakDays)", label: "Day streak",
+            StatTile(value: "\(history.streakDays)", label: "Day streak",
                      symbol: "flame")
         }
     }
@@ -43,14 +44,14 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Recent activity")
                 .font(.title3.bold())
-            if state.history.entries.isEmpty {
+            if history.entries.isEmpty {
                 ContentUnavailableView(
                     "No dictations yet",
                     systemImage: "waveform",
-                    description: Text("Put your cursor in any text field, hold \(state.settings.dictationKey.displayName), and start talking."))
+                    description: Text("Put your cursor in any text field, hold \(settings.dictationKey.displayName), and start talking."))
                     .frame(maxWidth: .infinity)
             } else {
-                ForEach(state.history.entries.prefix(8)) { entry in
+                ForEach(history.entries.prefix(8)) { entry in
                     HistoryRow(entry: entry)
                 }
             }

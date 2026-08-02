@@ -8,21 +8,48 @@ struct FreeFlowApp: App {
     var body: some Scene {
         Window("FreeFlow", id: "main") {
             RootView()
-                .environmentObject(state)
+                .injectStores(state)
                 .frame(minWidth: 780, minHeight: 520)
         }
         .defaultSize(width: 900, height: 620)
 
         MenuBarExtra {
             MenuBarContent()
-                .environmentObject(state)
+                .injectStores(state)
         } label: {
-            Image(systemName: menuBarSymbol)
+            // Must be a View that observes the controller directly — reading
+            // state.dictation.mode here would not re-render, because the
+            // controller is a nested ObservableObject.
+            MenuBarLabel(dictation: state.dictation)
         }
     }
+}
 
-    private var menuBarSymbol: String {
-        switch state.dictation.mode {
+/// Every store is injected separately. SwiftUI only re-renders a view when an
+/// object it *directly* observes changes, so injecting `AppState` alone would
+/// leave views blind to changes inside `history`, `dictionary`, etc.
+private extension View {
+    @MainActor
+    func injectStores(_ state: AppState) -> some View {
+        environmentObject(state)
+            .environmentObject(state.settings)
+            .environmentObject(state.history)
+            .environmentObject(state.dictionary)
+            .environmentObject(state.snippets)
+            .environmentObject(state.notes)
+            .environmentObject(state.dictation)
+    }
+}
+
+private struct MenuBarLabel: View {
+    @ObservedObject var dictation: DictationController
+
+    var body: some View {
+        Image(systemName: symbol)
+    }
+
+    private var symbol: String {
+        switch dictation.mode {
         case .idle: return "waveform"
         case .recording, .commandRecording: return "waveform.circle.fill"
         case .processing: return "waveform.circle"
@@ -31,12 +58,13 @@ struct FreeFlowApp: App {
 }
 
 private struct MenuBarContent: View {
-    @EnvironmentObject private var state: AppState
+    @EnvironmentObject private var settings: AppSettings
+    @EnvironmentObject private var dictation: DictationController
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         Button(dictationTitle) {
-            state.dictation.toggleHandsFree()
+            dictation.toggleHandsFree()
         }
         Divider()
         Button("Open FreeFlow") {
@@ -44,8 +72,8 @@ private struct MenuBarContent: View {
             NSApp.activate(ignoringOtherApps: true)
         }
         Divider()
-        Text("Hold \(state.settings.dictationKey.displayName) to dictate")
-        Text("Hold \(state.settings.commandKey.displayName) to edit selection")
+        Text("Hold \(settings.dictationKey.displayName) to dictate")
+        Text("Hold \(settings.commandKey.displayName) to edit selection")
         Divider()
         Button("Quit FreeFlow") {
             NSApp.terminate(nil)
@@ -54,7 +82,7 @@ private struct MenuBarContent: View {
     }
 
     private var dictationTitle: String {
-        if case .recording = state.dictation.mode {
+        if case .recording = dictation.mode {
             return "Stop Dictation"
         }
         return "Start Hands-Free Dictation"

@@ -3,9 +3,11 @@ import SwiftUI
 /// First-run setup: explains the app, walks through the three permissions,
 /// and lets the user pick a hotkey before trying their first dictation.
 struct OnboardingView: View {
-    @EnvironmentObject private var state: AppState
-    @ObservedObject private var settings = AppSettings.shared
+    @EnvironmentObject private var settings: AppSettings
     @State private var step = 0
+    /// Scratch field for the "try it" step — must be real state, not a
+    /// constant binding, or the user cannot dictate (or type) into it.
+    @State private var trialText = ""
     /// Poll permission state so the checkmarks update after the user visits
     /// System Settings.
     @State private var permissionsTick = 0
@@ -104,10 +106,15 @@ struct OnboardingView: View {
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: 480)
-            TextEditor(text: .constant(""))
+            TextEditor(text: $trialText)
                 .font(.body)
                 .frame(maxWidth: 480, minHeight: 90, maxHeight: 110)
                 .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.quaternary))
+            Text(trialText.isEmpty
+                 ? "Waiting for your voice…"
+                 : "\(trialText.split(whereSeparator: \.isWhitespace).count) words — nice.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 

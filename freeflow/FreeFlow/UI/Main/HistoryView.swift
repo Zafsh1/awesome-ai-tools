@@ -1,12 +1,12 @@
 import SwiftUI
 
 struct HistoryView: View {
-    @EnvironmentObject private var state: AppState
+    @EnvironmentObject private var history: HistoryStore
     @State private var query = ""
 
     private var filtered: [DictationEntry] {
-        guard !query.isEmpty else { return state.history.entries }
-        return state.history.entries.filter {
+        guard !query.isEmpty else { return history.entries }
+        return history.entries.filter {
             $0.finalText.localizedCaseInsensitiveContains(query)
                 || ($0.targetAppName?.localizedCaseInsensitiveContains(query) ?? false)
         }
@@ -14,7 +14,7 @@ struct HistoryView: View {
 
     var body: some View {
         Group {
-            if state.history.entries.isEmpty {
+            if history.entries.isEmpty {
                 ContentUnavailableView("No history yet", systemImage: "clock.arrow.circlepath")
             } else {
                 ScrollView {
@@ -23,7 +23,7 @@ struct HistoryView: View {
                             HistoryRow(entry: entry)
                                 .contextMenu {
                                     Button("Delete", role: .destructive) {
-                                        state.history.delete(entry)
+                                        history.delete(entry)
                                     }
                                 }
                         }
@@ -35,9 +35,9 @@ struct HistoryView: View {
         .searchable(text: $query, prompt: "Search dictations")
         .toolbar {
             Button("Clear All", role: .destructive) {
-                state.history.clear()
+                history.clear()
             }
-            .disabled(state.history.entries.isEmpty)
+            .disabled(history.entries.isEmpty)
         }
         .navigationTitle("History")
     }

@@ -40,6 +40,10 @@ make run       # builds Debug and launches the app
 # or: make open  → build & run from Xcode
 ```
 
+CI builds the app on a `macos-14` runner for every change under `freeflow/`
+(`.github/workflows/freeflow-build.yml`), so compile errors surface in the PR
+rather than on your machine.
+
 ## First run
 
 FreeFlow needs three permissions (onboarding walks you through them):

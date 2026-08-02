@@ -47,7 +47,6 @@ final class DictationController: ObservableObject {
     // Context of the in-flight recording.
     private var recordingStart: Date?
     private var targetApp: AppContext.FrontApp?
-    private var commandSelection: String?
 
     private var statusClearWork: DispatchWorkItem?
     private var cancellables: Set<AnyCancellable> = []
@@ -283,52 +282,36 @@ final class DictationController: ObservableObject {
             setStatus("Command Mode needs all permissions granted")
             return
         }
-        mode = .commandRecording
         targetApp = AppContext.frontmostApp()
         recordingStart = Date()
         partialTranscript = ""
-        commandSelection = nil
 
-        Task { @MainActor in
-            // Grab the selection first, then start listening for the
-            // instruction — the user is still holding the key.
-            let selection = await inserter.captureSelection()
-            guard mode == .commandRecording else { return }
-            guard let selection else {
-                mode = .idle
-                SoundPlayer.playError()
-                setStatus("Select some text first, then hold \(settings.commandKey.displayName) and speak an instruction")
-                return
-            }
-            commandSelection = selection
-            engine.onPartial = { [weak self] text in
-                self?.partialTranscript = text
-            }
-            do {
-                try engine.begin(locale: Locale(identifier: settings.localeIdentifier),
-                                 contextualStrings: [],
-                                 onDeviceOnly: settings.onDeviceOnly)
-                let engine = self.engine
-                recorder.onBuffer = { buffer in engine.append(buffer) }
-                recorder.onLevel = { [weak self] level in self?.pushLevel(level) }
-                try recorder.start()
-                SoundPlayer.playStart()
-            } catch {
-                engine.cancel()
-                mode = .idle
-                SoundPlayer.playError()
-                setStatus(error.localizedDescription)
-            }
+        // Start listening immediately; the selection is captured on key-up.
+        // Synthesizing ⌘C while the user is still physically holding the
+        // command key would combine with the held modifier and produce
+        // unpredictable shortcuts in the target app.
+        engine.onPartial = { [weak self] text in
+            self?.partialTranscript = text
+        }
+        do {
+            try engine.begin(locale: Locale(identifier: settings.localeIdentifier),
+                             contextualStrings: [],
+                             onDeviceOnly: settings.onDeviceOnly)
+            let engine = self.engine
+            recorder.onBuffer = { buffer in engine.append(buffer) }
+            recorder.onLevel = { [weak self] level in self?.pushLevel(level) }
+            try recorder.start()
+            mode = .commandRecording
+            SoundPlayer.playStart()
+        } catch {
+            engine.cancel()
+            SoundPlayer.playError()
+            setStatus(error.localizedDescription)
         }
     }
 
     private func commandKeyUp() {
         guard mode == .commandRecording else { return }
-        guard let selection = commandSelection, recorder.isRunning else {
-            // Released before the selection capture finished.
-            mode = .idle
-            return
-        }
         mode = .processing
         recorder.stop()
         SoundPlayer.playStop()
@@ -338,11 +321,18 @@ final class DictationController: ObservableObject {
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             defer {
                 partialTranscript = ""
-                commandSelection = nil
                 mode = .idle
             }
             guard !instruction.isEmpty else {
                 setStatus("Didn't catch an instruction")
+                return
+            }
+            // Let the physical modifier release propagate before we synthesize
+            // ⌘C, so the copy isn't seen as ⌘⌘C by the target app.
+            try? await Task.sleep(nanoseconds: 80_000_000)
+            guard let selection = await inserter.captureSelection() else {
+                SoundPlayer.playError()
+                setStatus("Select some text first, then hold \(settings.commandKey.displayName) and speak an instruction")
                 return
             }
             let claude = settings.anthropicAPIKey.isEmpty

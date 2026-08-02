@@ -1,0 +1,56 @@
+name: FreeFlow build
+
+# Builds the FreeFlow macOS app so compile errors surface in CI rather than
+# on a contributor's machine. Scoped to the freeflow/ directory so the rest of
+# this repo (a curated Markdown list) never pays for a macOS runner.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'freeflow/**'
+      - '.github/workflows/freeflow-build.yml'
+  pull_request:
+    paths:
+      - 'freeflow/**'
+      - '.github/workflows/freeflow-build.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: freeflow-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build (macOS)
+    runs-on: macos-14
+    defaults:
+      run:
+        working-directory: freeflow
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -switch /Applications/Xcode_15.4.app
+
+      - name: Show toolchain versions
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project FreeFlow.xcodeproj \
+            -scheme FreeFlow \
+            -configuration Debug \
+            -destination 'platform=macOS' \
+            CODE_SIGNING_ALLOWED=NO \
+            build

@@ -3,7 +3,7 @@ import SwiftUI
 /// Voice snippets: speak the trigger phrase during dictation and the full
 /// saved text is inserted instead — scheduling links, intros, disclaimers.
 struct SnippetsView: View {
-    @EnvironmentObject private var state: AppState
+    @EnvironmentObject private var snippetStore: SnippetStore
     @State private var trigger = ""
     @State private var content = ""
 
@@ -11,21 +11,21 @@ struct SnippetsView: View {
         VStack(spacing: 0) {
             addForm
             Divider()
-            if state.snippets.snippets.isEmpty {
+            if snippetStore.snippets.isEmpty {
                 ContentUnavailableView(
                     "No snippets yet",
                     systemImage: "text.badge.plus",
                     description: Text("Create a trigger like “insert my calendar link”, then just say it while dictating."))
             } else {
                 List {
-                    ForEach(state.snippets.snippets) { snippet in
+                    ForEach(snippetStore.snippets) { snippet in
                         VStack(alignment: .leading, spacing: 4) {
                             HStack {
                                 Label("“\(snippet.trigger)”", systemImage: "mic")
                                     .fontWeight(.semibold)
                                 Spacer()
                                 Button {
-                                    state.snippets.delete(snippet)
+                                    snippetStore.delete(snippet)
                                 } label: {
                                     Image(systemName: "trash")
                                 }
@@ -53,7 +53,7 @@ struct SnippetsView: View {
             HStack {
                 Spacer()
                 Button("Add Snippet") {
-                    state.snippets.add(trigger: trigger, content: content)
+                    snippetStore.add(trigger: trigger, content: content)
                     trigger = ""
                     content = ""
                 }

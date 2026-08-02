@@ -4,7 +4,7 @@ import SwiftUI
 /// bias the recognizer; entries with a replacement also rewrite the
 /// transcript ("gpt four" -> "GPT-4").
 struct DictionaryView: View {
-    @EnvironmentObject private var state: AppState
+    @EnvironmentObject private var dictionary: DictionaryStore
     @State private var spoken = ""
     @State private var replacement = ""
 
@@ -12,14 +12,14 @@ struct DictionaryView: View {
         VStack(spacing: 0) {
             addBar
             Divider()
-            if state.dictionary.entries.isEmpty {
+            if dictionary.entries.isEmpty {
                 ContentUnavailableView(
                     "Dictionary is empty",
                     systemImage: "character.book.closed",
                     description: Text("Add names, acronyms, and industry terms so FreeFlow always gets them right."))
             } else {
                 List {
-                    ForEach(state.dictionary.entries) { entry in
+                    ForEach(dictionary.entries) { entry in
                         HStack {
                             Text(entry.spoken)
                             if !entry.replacement.isEmpty {
@@ -31,7 +31,7 @@ struct DictionaryView: View {
                             }
                             Spacer()
                             Button {
-                                state.dictionary.delete(entry)
+                                dictionary.delete(entry)
                             } label: {
                                 Image(systemName: "trash")
                             }
@@ -51,7 +51,7 @@ struct DictionaryView: View {
             TextField("Written as (optional, e.g. GPT-4)", text: $replacement)
                 .textFieldStyle(.roundedBorder)
             Button("Add") {
-                state.dictionary.add(spoken: spoken, replacement: replacement)
+                dictionary.add(spoken: spoken, replacement: replacement)
                 spoken = ""
                 replacement = ""
             }

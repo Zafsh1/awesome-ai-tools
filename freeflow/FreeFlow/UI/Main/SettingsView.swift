@@ -2,8 +2,7 @@ import SwiftUI
 import Speech
 
 struct SettingsView: View {
-    @EnvironmentObject private var state: AppState
-    @ObservedObject private var settings = AppSettings.shared
+    @EnvironmentObject private var settings: AppSettings
 
     var body: some View {
         Form {
